@@ -120,10 +120,23 @@
       VAAS 专用钥应铸在 **user 128**（已在组 19 授权名单 `128→19`）名下，
       与 probe key 181 同法（app 写路径 + AES-256-GCM 补密文列），不动既有用户授权。
 - [ ] 8.7 vault 凭据记录（`vaas/pool/wanxing/video`：`{provider: grok, ...}`）
-      ⛔ vault 写权限 permission denied（OpenBAO <render-node-a>:8200），与 2.2 同一阻塞
-- [ ] 8.8 视频车道实调销账：真调 `/v1/videos` 全链（提交→轮询→取件）后
-      把 `video.grok` 写进台账（active，带证据）；实调前 MUST NOT 预翻
-      （design D5/D7 同款纪律；未知车道 degraded 放行不构成销账证据）
+      ⛔ vault 写权限 permission denied（OpenBAO <render-node-a>:8200 未封印、可达，
+      但本机无 `bao`/`vault` CLI 且 VAAS `.env` 无 `OPENBAO_TOKEN`；写入需一个
+      path 受限 policy token，出处见 deploy/README「解封配方」的 root-only 文件），
+      与 2.2 同一阻塞。**凭据本身已备好**（见 8.8a），只差写进 vault 这一步
+- [x] 8.8 视频车道实调销账（2026-11-15 真调通过）：经 **真实驱动**
+      `scripts/_grok_video.py` 打 `/v1/videos` 全链 —— 任务 `vid_84655a2f5a1f13ee`
+      → 真 MP4 落盘 3,140,407 B / h264 1280x720 + aac / 3.04s（ffprobe 独立核过），
+      上游自报承做 `kling-video-v3`、`seconds:3`、`resolution:720P`。两条披露均真实
+      触发：请求 1s 被夹紧 3s、请求 480p 实得 720P。凭证=组 19 专用钥（api_keys
+      id 182 / user 128，`last_used_at`=2026-11-14 19:48:56Z ⇒ 密文鉴权路径已通）。
+      台账 `video.grok` → active（reason 内含证据与「视频完成不落 usage_logs」这条
+      上游缺陷的实测复现）；`image.grok` 记 **degraded**（同一上游已由 image.ciyuan
+      条目带证据，但 provider=grok 直连档尚无独立实调——不借证据翻绿）
+- [x] 8.8a 词元侧专用钥已就位：`api_keys id 182`（user 128 / group 19 / active /
+      name `vaas-media-grok`；`key_hash`+`key_encrypted` 两列齐备，明文不落仓、
+      不落文档）。它就是把 8.7 的 vault 记录写进 `vaas/pool/wanxing/{image,video}`
+      时要填的那把钥——vault 通了直接取用，不必重铸
 - [x] 8.9 `openspec validate add-image-lane-fallback --strict` 重跑通过
       （中途修过一处 delta 结构：新 requirement 必须在 `## ADDED Requirements` 段、
       且全文件只许一个 `## MODIFIED Requirements` 段——两个 MODIFIED 段 archive 只应用最后一个）

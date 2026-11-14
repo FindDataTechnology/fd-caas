@@ -33,6 +33,12 @@
       "reason": "在役 ARK key 为 Agent Plan 专用，缺 seedream 权限（deploy README 已知口径）",
       "last_verified": "2026-10-06"
     },
+    "image.grok": {
+      "health": "degraded",
+      "reason_class": "none",
+      "reason": "provider=grok 直连图像档（组 19）：代码路径与 ciyuan 档同一驱动（`_ciyuan_image.generate`），同一上游已由 image.ciyuan 条目带实调证据（台账行 386469），但本档尚无独立实调 ⇒ 记 degraded 并如实说明；首次真调后翻 active",
+      "last_verified": "2026-11-15"
+    },
     "video.ciyuan": {
       "health": "down",
       "reason_class": "upstream_blocked",
@@ -44,6 +50,12 @@
       "reason_class": "unconfigured",
       "reason": "ARK 视频凭据未入 vault",
       "last_verified": "2026-10-06"
+    },
+    "video.grok": {
+      "health": "active",
+      "reason_class": "none",
+      "reason": "**2026-11-15 实调销账**（`/v1/videos` 全链，经 `scripts/_grok_video.py` 真实驱动）：任务 `vid_84655a2f5a1f13ee` → 真 MP4 落盘 3,140,407 B / h264 1280x720 + aac / 3.04s（ffprobe 独立核过）；上游自报承做 `kling-video-v3`、`seconds:3`、`resolution:720P`。两条披露同时真实触发：请求 1s 被夹紧到上游下限 3s、请求 480p 实得 720P。端到端凭证=组 19 专用钥（api_keys id 182 / user 128，`last_used_at` 证明密文鉴权路径已通）。**已知上游缺陷（不属本车道）：视频完成不落 `usage_logs`**——sub2api `grok_media.go` 计费谓词等 `status==\"done\"`+`video.url`，上游实际回 `status:\"completed\"`+扁平 `url`，故本次调用同样无用量行（2h 内视频类 0 行，实测复现）。本条目只证车道可用，不证计费正确",
+      "last_verified": "2026-11-15"
     },
     "render.local": {
       "health": "active",
