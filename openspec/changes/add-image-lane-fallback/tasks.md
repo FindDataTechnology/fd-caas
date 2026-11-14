@@ -89,3 +89,44 @@
 - [ ] 7.5 复验周期是否要按车道类型再分档（小时级更短）、以及发现面展示文案，
       ⛔ 需要先有一次真实复验来观察判定形态，再定分档
       留给实体检后定；当前只做「标出来」不做「自动降级」
+
+## 8. grok 车道（组 19 /v1/videos 协议族，2026-11-15 扩展）
+
+- [x] 8.1 `scripts/_grok_video.py`：四函数接口（submit/poll/status_once/download）
+      与 `_ciyuan_video.py` 同名同签名；打 `/v1/videos` 协议族。三个实测事实写死：
+      终态 `completed`→`succeeded`（兼容 `done`）、取件 URL 是相对路径
+      （下载拼 base_url 并带 Authorization；绝对签名 URL 免鉴权直取）、
+      MP4 `ftyp` 魔数通过才写盘
+- [x] 8.2 时长夹紧 [3,15]s：越界夹到边界并在 `warnings` 点名原值→生效值，
+      不静默改写也不硬拒（design D8）；上游无视请求分辨率同理披露
+- [x] 8.3 桥接器 `scripts/litellm-bridge.py`：image 分支 `provider=grok` 委托
+      `_ciyuan_image.generate`（凭据 `GROK_API_KEY`/`GROK_BASE_URL`，回落
+      `CIYUAN_*`）；video 分支走新驱动，两阶段防重复计费语义
+      （`--async` 只提交 / `--status` 只查态）原样保留；两条路的
+      `_reject_provider` 文案列出 grok
+- [x] 8.4 `lane_health.json`：`image.ciyuan` → `active`，实调证据 =
+      台账行 386469（acct 57 / 组 19 / `grok-imagine-image` / $0.02 / 真产物落盘），
+      `reason` 披露「请求名 grok-imagine-image、实际 hunyuan-image-alpha 承做」
+      的重映射；组 9 的 DEBT-LANE-9-01 不因此销账（车道身份跟着凭据组走，design D7）
+- [x] 8.5 单测（`tests/test_grok_video_lane.py` 13 条，全离线）：状态映射三向 /
+      相对 URL 拼接与鉴权头 / 绝对 URL 免鉴权 / 非 MP4 不写盘 / 时长夹紧三向 /
+      submit 缺 key·base_url 拒绝 / generate_and_wait 全链 + 分辨率披露 /
+      桥接器三向（grok 图像委托+凭据回落 / grok 视频两阶段无 POST / 未知 provider 文案）。
+      台账翻转牵出的 4 条旧断言（test_correctness_c1）已跟着台账改：
+      可用面断言跟上现实，lane_down 拒绝标本改用仍 down 的 video.ciyuan
+- [x] 8.6 词元侧授权——**裁决：不动 user 1 的权限面**。一把密钥只绑一个分组
+      （spec 既有约束），user 1 的现役钥 162 在组 9，本来就不能服务组 19；
+      给 user 1 补 `user_allowed_groups` 只在「复用 user 1 再铸新钥」时有意义。
+      VAAS 专用钥应铸在 **user 128**（已在组 19 授权名单 `128→19`）名下，
+      与 probe key 181 同法（app 写路径 + AES-256-GCM 补密文列），不动既有用户授权。
+- [ ] 8.7 vault 凭据记录（`vaas/pool/wanxing/video`：`{provider: grok, ...}`）
+      ⛔ vault 写权限 permission denied（OpenBAO <render-node-a>:8200），与 2.2 同一阻塞
+- [ ] 8.8 视频车道实调销账：真调 `/v1/videos` 全链（提交→轮询→取件）后
+      把 `video.grok` 写进台账（active，带证据）；实调前 MUST NOT 预翻
+      （design D5/D7 同款纪律；未知车道 degraded 放行不构成销账证据）
+- [x] 8.9 `openspec validate add-image-lane-fallback --strict` 重跑通过
+      （中途修过一处 delta 结构：新 requirement 必须在 `## ADDED Requirements` 段、
+      且全文件只许一个 `## MODIFIED Requirements` 段——两个 MODIFIED 段 archive 只应用最后一个）
+- [x] 8.10 registry 发现面挂 grok 条目：`seedream-grok`/`seedance-grok`
+      （provider=grok，model 占位 `${GROK_IMAGE_MODEL}`/`${GROK_VIDEO_MODEL}`，
+      通用 `${ENV}` 解析已覆盖；车道闸对未知车道 degraded 放行，凭据入 vault 前即可见不可用）

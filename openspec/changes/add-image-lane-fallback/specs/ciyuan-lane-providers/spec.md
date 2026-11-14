@@ -67,6 +67,12 @@ SHALL 在响应 `warnings` 中如实披露。
 MUST 只改该记录，MUST NOT 需要改动生成代码或重出镜像。镜像内与车道状态相关的唯一
 产物是 `lane_health.json`，其变更随镜像生效。
 
+provider 档 SHALL 为显式枚举（`volcengine`/`ciyuan`/`grok`）；未受支持的 provider
+MUST 显式拒绝并列出受支持档位，MUST NOT 静默回落。**车道身份跟随凭据分组**：
+台账条目按凭据所属分组记账（如 `image.grok`/`video.grok`），MUST NOT 把一条分组
+的销账顺手写到另一条分组的条目上（一条分组的封禁与另一条分组的可用互相独立，
+混写会互相遮蔽）。
+
 #### Scenario: 语音与图像使用各自分组的凭证
 
 - **WHEN** 同一次部署内分别发起语音合成与图像生成
@@ -86,6 +92,20 @@ MUST 只改该记录，MUST NOT 需要改动生成代码或重出镜像。镜像
 - **THEN** 只需改写该 kind 的凭证记录（provider/base_url/api_key/model）即可切到备用上游
 - **AND** 该切换 MUST NOT 要求改动生成代码、MUST NOT 要求重出镜像
 - **AND** `lane_health.json` 的状态更新 MUST 以切换后的实调端到端证据为准
+
+#### Scenario: grok 图像档与 ciyuan 档共用驱动、分记账本
+
+- **WHEN** 凭证记录声明 `provider: grok` 发起图像生成
+- **THEN** 系统经同一图像驱动请求 `/v1/images/generations`（组 19 端点形状与组 9 一致），
+  仅凭据与模型名不同（缺省 `grok-imagine-image`，`GROK_API_KEY`/`GROK_BASE_URL`
+  缺省回落 `CIYUAN_*`——同一网关）
+- **AND** 台账销账记在 grok 分组的条目上；组 9 的缺陷台账 MUST NOT 因组 19 可用而销账
+
+#### Scenario: 未受支持的 provider 显式拒绝
+
+- **WHEN** 调用者指定的 image/video provider 不在受支持档位内
+- **THEN** 调用失败并列出受支持的 provider 档位
+- **AND** MUST NOT 回落到任何其他 provider 静默代做
 
 ### Requirement: 词元侧车道缺陷的记录与规避
 
@@ -126,3 +146,49 @@ MUST NOT 记为新鲜。
 - **THEN** 发现工具对该车道的 `lane` 视图带 `stale: true` 与 `age_days`
 - **AND** 该标注对 `down` 与 `active` 一视同仁（两种陈旧都需要人复验）
 - **AND** 时间戳不可解析时标注为「判不出」（`null`），MUST NOT 记为 `false`
+
+## ADDED Requirements
+
+### Requirement: grok 视频车道（/v1/videos 协议族）
+
+`provider=grok` 的视频生成 SHALL 走独立的 `/v1/videos` 协议族驱动
+（`POST /v1/videos` → `GET /v1/videos/<id>` → `GET /v1/videos/<id>/content`），
+MUST NOT 复用 ciyuan 档的 `/v1/contents/generations/tasks` 端点——两者形状不同。
+驱动 SHALL 提供 `submit/poll/status_once/download` 四函数接口，与 ciyuan 视频驱动
+同名同签名，使宿主两阶段防重复计费语义（`--async` 只提交不等待、`--status` 只查态
+不提交）原样保留。
+
+驱动 SHALL 编入三个实测上游事实：① 终态按上游真实词表判（`completed` 映射为统一
+`succeeded`，兼容 `succeeded`/`done`）；② 取件地址可为相对路径（`/v1/videos/<id>/content`），
+下载 SHALL 拼 base_url 并携带 Authorization，绝对签名 URL 免鉴权直取；③ 下载字节
+MUST 通过 MP4 容器魔数（`ftyp`）校验，不符 SHALL 失败且 MUST NOT 写盘。
+
+时长 SHALL 夹紧到上游硬边界 [3,15] 秒：越界值夹到边界并在响应 `warnings` 中点名
+原值与生效值，MUST NOT 静默改写不披露，MUST NOT 因越界直接拒绝。上游未按请求交付的
+参数（如要 480p 实得 720P）SHALL 在 `warnings` 中如实披露。
+
+#### Scenario: grok 视频两阶段提交与查询
+
+- **WHEN** 调用者以 `--async` 发起 grok 视频生成
+- **THEN** 系统仅 `POST /v1/videos` 并立即返回任务 id 与上游状态，不内部轮询
+- **AND** 后续以 `--status <id>` 查询时仅读状态，MUST NOT 重新提交付费任务
+
+#### Scenario: grok 视频完成取件
+
+- **WHEN** 任务上游状态到达终态 `completed` 且返回取件地址
+- **THEN** 驱动把状态归一为 `succeeded` 并解析扁平 `url`（兼容嵌套 `video.url`）
+- **AND** 相对路径取件 SHALL 拼 base_url 并带 Authorization；绝对 URL 直取
+- **AND** 下载体非 MP4 容器 SHALL 失败且不写盘
+
+#### Scenario: 越界时长夹紧披露
+
+- **WHEN** 调用者请求时长 1 秒（上游硬边界为 [3,15] 秒）
+- **THEN** 驱动以 3 秒提交任务
+- **AND** 响应 `warnings` 点名「请求 1s → 实发 3s」，MUST NOT 静默改写
+
+#### Scenario: grok 视频车道未实调前不进台账
+
+- **WHEN** grok 视频车道尚未取得端到端实调证据（提交→轮询→取件真产物）
+- **THEN** 台账 MUST NOT 预先记录该车道为 active
+- **AND** 未记录的车道按 degraded 放行（车道闸不拦未知车道），但这不构成销账证据
+

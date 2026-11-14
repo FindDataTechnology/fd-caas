@@ -49,6 +49,41 @@ URL 形态是**新增的网络面**，因此下载路径必须自带约束，不
 `lane_health.json` 的 `down` 会阻断上游探测（车道闸先拒），`last_verified` 不会自己前进。
 因此翻 `active` 必须有一次「产物落盘 + 形状合规」的实调证据；仅改状态视为未销账。
 
+### D7 grok 是第三条 provider 档，不是别名
+
+组 19 的图像端点形状与 ciyuan 档完全一致（`POST /v1/images/generations`），
+但**视频端点是另一个协议族**：`POST /v1/videos` → `GET /v1/videos/<id>` →
+`GET /v1/videos/<id>/content`，与 ciyuan 档的 `/v1/contents/generations/tasks` 形状不同。
+因此：
+
+- **图像**：`provider=grok` 委托 `_ciyuan_image.generate`（同一驱动），只换凭据来源
+  （`GROK_API_KEY`/`GROK_BASE_URL`，缺省回落 `CIYUAN_*`——同一个网关）。
+- **视频**：新驱动 `_grok_video.py`，四函数接口（submit/poll/status_once/download）
+  与 `_ciyuan_video.py` 完全同名同签名——宿主两阶段防重复计费语义
+  （`--async` 只提交、`--status` 只查态）原样保留，不改分派层骨架。
+
+三个实测上游事实写死在驱动里（2026-11-14/15 真调）：
+
+1. **终态词表**：上游回 `completed`（不是 ciyuan 的 `succeeded`，也不是 xAI 文档的
+   `done`）；驱动把 `completed`/`succeeded`/`done` 都映射为统一 `succeeded`，
+   `url` 扁平在场（兼容嵌套 `video.url`）。
+2. **取件 URL 是相对路径**（`/v1/videos/<id>/content`）：下载必须拼 `base_url`
+   **并带 Authorization**——ciyuan 档「绝对签名 URL 免鉴权」的假设在这里不成立。
+   绝对 URL（COS 签名那种）仍免鉴权直取。
+3. **产物魔数**：MP4 容器（`ftyp`）校验通过才写盘，与图像车道「契约外容器」纪律一致——
+   不写打不开的假产物。
+
+台账条目叫 `video.grok`/`image.grok`，**不**写进 `video.ciyuan`——车道身份跟着
+凭据组走，混写会让「组 9 封禁」与「组 19 可用」互相遮蔽。
+`video.grok` 在实调销账前**不进台账**（未知车道 → degraded 放行），与 D5 同理。
+
+### D8 时长夹紧披露，不静默改写
+
+上游视频时长硬边界 [3,15] 秒（给 1 报「时长必须在 3 到 15 秒之间」），而本地计费侧
+允许 1 秒——两处口径不一致，且这不是我们能改的。驱动把越界时长**夹紧到边界**并在
+返回的 `warnings` 里点名（原值 → 生效值）。不静默改写（客户不知道自己付了几秒的钱）、
+也不硬拒（夹紧后产物仍有用）。上游无视请求分辨率（要 480p 给 720P）同理披露。
+
 ## Risks / Trade-offs
 
 - URL 下载引入 SSRF 面（上游可让服务端去取任意地址）。当前上游是我们自己的词元网关

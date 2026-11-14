@@ -29,6 +29,12 @@
   三态（`restored` / `still-blocked` / `cannot-judge`），且 **4xx 一律不算封禁**
   （key/模型/参数问题指向我们自己的配置，不指向上游）；这样 `lane_health.json` 的
   陈旧判定有了一条低成本对账路径，`down` 不会因为没人复验而永久僵住。
+- **grok 第三 provider 档（2026-11-15 扩展）**：词元组 19 现已实测可服务图像与视频
+  （acct 57 联邦入口；图像真产物落盘 $0.02/2K，视频真 MP4）。`provider=grok` 新增为
+  显式档位：图像委托 ciyuan 驱动（端点形状相同、只换凭据），视频走新驱动
+  `_grok_video.py`（`/v1/videos` 协议族，四函数接口与 ciyuan 视频驱动同签名，
+  两阶段防重复计费语义保留）。时长夹紧 [3,15]s 并披露；台账按凭据分组记账，
+  组 9 与组 19 互不遮蔽。
 - 文档订正：`docs/debt-ledger.md` 的 DEBT-LANE-9-01 补记「组 9 单账号＝单点」这一
   结构成因，以及组 19 这条可用替代车道。
 
@@ -41,13 +47,16 @@
 ### Modified Capabilities
 
 - `ciyuan-lane-providers`: 图像车道放宽为接受 `b64_json` 或 `url` 两种产物形态；
-  「词元分组口径与分路凭证」补上备用上游的切换口径（改凭证记录、免出片）与
-  lane 台账复验对账要求。
+  「词元分组口径与分路凭证」补上备用上游的切换口径（改凭证记录、免出片）、
+  provider 显式档位与「台账按凭据分组记账」要求；新增「grok 视频车道
+  （/v1/videos 协议族）」requirement（四函数接口、相对 URL 鉴权取件、
+  MP4 魔数、时长夹紧披露、未实调不进台账）。
 
 ## Impact
 
-- 代码：`scripts/_ciyuan_image.py`（产物形态解析）、`mcp-server/mcp_server/generators/image.py`
-  （仅在需要时透传），以及对应单测。
+- 代码：`scripts/_ciyuan_image.py`（产物形态解析）、`scripts/_grok_video.py`（新驱动）、
+  `scripts/litellm-bridge.py`（image/video 分支各加 grok 档）、
+  `mcp-server/mcp_server/generators/image.py`（仅在需要时透传），以及对应单测。
 - 数据：`mcp-server/mcp_server/lane_health.json`（随镜像内嵌，改动需出片/重部署）。
 - 外部系统：萬星·词元 `router.finddatatech.cloud`（组 9 现役被封 / 组 19 现役可用）、
   vault `vaas/pool/wanxing/image`（换车道时的唯一写入点）。
