@@ -6,8 +6,11 @@
 返回合规 JSON 产物的模型；返回非 JSON（如 HTML）的模型 MUST NOT 作为默认或推荐值。
 
 产物形态 SHALL 同时接受 `data[].b64_json` 与 `data[].url` 两种：前者直接解码落盘，
-后者下载后落盘。下载 MUST 只允许 http/https、设连接与读取超时、设体积上限，并按
-`Content-Type` 与图像魔数双重校验；任一项不符 SHALL 失败，MUST NOT 把非图像字节写成产物。
+后者下载后落盘。**两种形态的校验 MUST 同等级别**：解码或下载所得字节 MUST 通过图像魔数
+识别，识别不出 SHALL 失败且 MUST NOT 写盘（避免产出打不开的假产物）。下载另 MUST 只允许
+http/https、设连接与读取超时、设体积上限，并按 `Content-Type` 与魔数双重校验。
+产物扩展名 MUST 取实际容器类型，MUST NOT 沿用请求的 `output_format`；二者不一致时
+SHALL 在响应 `warnings` 中如实披露。
 
 #### Scenario: 图像生成成功落盘
 
@@ -34,6 +37,18 @@
 - **THEN** 系统下载该 URL 并落盘为图像产物，响应形状与 `b64_json` 形态一致
 - **AND** 下载体非图像（HTML/JSON 错误体）、超出体积上限或超时 SHALL 失败并说明原因
 - **AND** MUST NOT 把上游 URL 直接当作产物路径返回给调用者
+
+#### Scenario: b64 产物同样要过魔数校验
+
+- **WHEN** 上游在 `data[].b64_json` 里返回的不是图像（例如 HTML 错误页的 base64）
+- **THEN** 该次生成失败并指出首字节内容
+- **AND** MUST NOT 把该字节写成产物文件（旧行为会写成一个打不开的假图片）
+
+#### Scenario: 扩展名跟实际容器走
+
+- **WHEN** 上游返回的容器与调用者请求的 `output_format` 不一致（如请求 jpeg、实得 PNG）
+- **THEN** 产物文件按实际容器命名（`.png`），MUST NOT 命名为 `.jpeg`
+- **AND** 响应的 `warnings` 中如实披露该差异
 
 ### Requirement: 词元分组口径与分路凭证
 

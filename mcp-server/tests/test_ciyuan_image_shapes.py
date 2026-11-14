@@ -160,3 +160,38 @@ def test_error_message_hides_query_string(monkeypatch, tmp_path):
         _call(mod, tmp_path)
     assert "topsecret" not in str(exc.value)
     assert "cdn.example" in str(exc.value)
+
+
+# ── 两种形态的校验必须同等级别 ────────────────────────────────────────────────
+
+def test_b64_payload_must_be_a_real_image(monkeypatch, tmp_path):
+    """b64 里塞 HTML 的 base64：旧代码会原样写盘，产出一个打不开的「图片」。"""
+    mod = _load()
+    fake = base64.b64encode(b"<html>nope</html>").decode()
+    _patch(monkeypatch, mod, {"data": [{"b64_json": fake}]})
+    with pytest.raises(RuntimeError, match="not a known image format"):
+        _call(mod, tmp_path)
+
+
+def test_b64_reports_detected_format(monkeypatch, tmp_path):
+    mod = _load()
+    _patch(monkeypatch, mod, {"data": [{"b64_json": base64.b64encode(PNG).decode()}]})
+    res = _call(mod, tmp_path)
+    assert res["images"][0]["format"] == "png"
+
+
+def test_url_reports_detected_format(monkeypatch, tmp_path):
+    mod = _load()
+    _patch(monkeypatch, mod, {"data": [{"url": "http://cdn.example/a.png"}]},
+           image_body=JPEG, image_type="image/jpeg")
+    res = _call(mod, tmp_path)
+    assert res["images"][0]["format"] == "jpeg"
+
+
+def test_detect_format_covers_webp_and_avif():
+    mod = _load()
+    webp = b"RIFF" + b"\x00\x00\x00\x00" + b"WEBP" + b"\x00" * 8
+    avif = b"\x00\x00\x00\x20ftypavif" + b"\x00" * 8
+    assert mod._detect_format(webp) == "webp"
+    assert mod._detect_format(avif) == "avif"
+    assert mod._detect_format(b"plain text") is None

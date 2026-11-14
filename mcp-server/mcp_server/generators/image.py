@@ -115,6 +115,7 @@ def generate(
 
     # Collect generated image paths
     file_paths = []
+    format_mismatches: list[tuple[str, str]] = []
     images = output.get("images", [])
 
     for i, img in enumerate(images):
@@ -122,8 +123,19 @@ def generate(
         if local_path:
             # Rename to our naming convention
             src_path = Path(local_path)
-            dst_name = f"{slug}_{i:02d}.{output_format}"
+            # Extension follows the ACTUAL container, not the requested format:
+            # the driver reports `format` from magic bytes. Naming a PNG
+            # `_00.jpeg` lies to every downstream consumer (publish skills pick
+            # the upload type by extension), so we prefer the detected value and
+            # disclose the divergence below instead of pretending it matched.
+            actual_format = (img.get("format") or output_format).lower()
+            if actual_format == "jpg":
+                actual_format = "jpeg"
+            dst_name = f"{slug}_{i:02d}.{actual_format}"
             dst_path = output_dir / dst_name
+
+            if actual_format != output_format:
+                format_mismatches.append((actual_format, output_format))
 
             if src_path != dst_path:
                 src_path.rename(dst_path)
@@ -134,9 +146,16 @@ def generate(
     if not file_paths and output_path.exists():
         file_paths.append(get_relative_path("images", slug, f"{slug}_00.{output_format}"))
 
-    # Parameter honesty: a zero-image "success" and a provider that ignored
-    # n are both disclosed, never billed silently as if the request landed.
+    # Parameter honesty: a zero-image "success", a provider that ignored n, and
+    # a container that differs from the requested format are all disclosed,
+    # never billed silently as if the request landed as asked.
     warnings: list[str] = []
+    if format_mismatches:
+        pairs = sorted({f"{a}→{r}" for a, r in format_mismatches})
+        warnings.append(
+            "upstream returned a different container than requested "
+            f"({', '.join(pairs)}); files are named by their actual format"
+        )
     if len(file_paths) < n:
         if provider_actual not in N_SUPPORTED_PROVIDERS:
             warnings.append(

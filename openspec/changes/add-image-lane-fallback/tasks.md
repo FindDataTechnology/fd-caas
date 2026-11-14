@@ -10,6 +10,11 @@
 - [x] 1.4 单测（`tests/` 既有风格）：b64 形态回归、url 形态落盘、url 返回 HTML 失败、
       url 超体积失败、`data` 为空失败
 
+- [x] 1.5 b64 形态补同等级校验：解码后 MUST 过魔数识别，认不出即失败且不写盘
+      （旧代码对 b64 零校验，base64 的 HTML 会被写成打不开的假图）；`images[]` 带 `format`
+- [x] 1.6 `generators/image.py`：扩展名取**实际容器**而非请求的 `output_format`，
+      不一致时在 `warnings` 披露（旧行为会产出「叫 .jpeg 的 PNG」，下游按扩展名选上传类型）
+
 ## 2. 换上游（数据，不出片）
 
 - [ ] 2.1 取一条可用的图像上游凭证：组 19 `fed-workbuddy-media`（acct 57，

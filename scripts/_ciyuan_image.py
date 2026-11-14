@@ -41,14 +41,37 @@ _IMAGE_MAGIC = (
     (b"\x89PNG\r\n\x1a\n", "png"),
     (b"GIF87a", "gif"),
     (b"GIF89a", "gif"),
+    (b"BM", "bmp"),
+    (b"II*\x00", "tiff"),
+    (b"MM\x00*", "tiff"),
 )
 
 
+def _detect_format(raw: bytes) -> str | None:
+    """Actual image container from magic bytes, or None if unrecognised.
+
+    Used by BOTH product shapes. Before this, only the url path was validated;
+    a `b64_json` payload was decoded and written with no check at all, so an
+    upstream returning base64-of-HTML produced a file that looked like an image
+    to everything downstream. Same lane, two shapes, one trust level.
+    """
+    for sig, fmt in _IMAGE_MAGIC:
+        if raw.startswith(sig):
+            return fmt
+    if raw[:4] == b"RIFF" and raw[8:12] == b"WEBP":
+        return "webp"
+    # ISOBMFF (HEIF/AVIF family): ....ftyp<brand>
+    if raw[4:8] == b"ftyp":
+        brand = raw[8:12]
+        if brand in (b"avif", b"avis"):
+            return "avif"
+        if brand in (b"heic", b"heix", b"mif1", b"msf1"):
+            return "heic"
+    return None
+
+
 def _looks_like_image(raw: bytes) -> bool:
-    if any(raw.startswith(sig) for sig, _ in _IMAGE_MAGIC):
-        return True
-    # WEBP: RIFF....WEBP
-    return raw[:4] == b"RIFF" and raw[8:12] == b"WEBP"
+    return _detect_format(raw) is not None
 
 
 def _host_only(url: str) -> str:
@@ -180,15 +203,24 @@ def generate(
         b64 = item.get("b64_json")
         if b64:
             raw = base64.b64decode(b64)
+            # 与 url 形态同等级别的校验：解码出来的必须真的是图像。
+            # 只在「认不出」时失败，并带上首字节，便于把新格式补进魔数表。
+            fmt = _detect_format(raw)
+            if fmt is None:
+                raise RuntimeError(
+                    "ciyuan image b64 payload is not a known image format "
+                    f"(first bytes: {raw[:12].hex()}) — 不写盘，避免产出打不开的假产物"
+                )
             with open(path, "wb") as f:
                 f.write(raw)
-            images.append({"local_path": path, "file_size_bytes": len(raw)})
+            images.append({"local_path": path, "file_size_bytes": len(raw), "format": fmt})
             continue
         url = item.get("url")
         if url:
             # 只在缺 b64 时才走 url（design D1：b64 优先，顺序固定）
-            size = _download_image(str(url), path)
-            images.append({"local_path": path, "file_size_bytes": size})
+            written = _download_image(str(url), path)
+            fmt = _detect_format(open(path, "rb").read(32))
+            images.append({"local_path": path, "file_size_bytes": written, "format": fmt})
             continue
         # 两种形态都缺：如实报错，绝不猜
         raise RuntimeError(
