@@ -18,22 +18,28 @@
 ## 2. 换上游（数据，不出片）
 
 - [ ] 2.1 取一条可用的图像上游凭证：组 19 `fed-workbuddy-media`（acct 57，
+      ⛔ 需要组 19 的 key 归属决定（新建 VAAS 专用 / 复用 federation@）
       `grok-imagine-image`，`/v1/images/generations`）；确认该分组是否允许
       VAAS 所在账号使用（组 19 `is_exclusive=f`，但密钥属 `federation@` 用户，
       需决定是新建一把 VAAS 专用 key 还是复用）
 - [ ] 2.2 写入 vault `vaas/pool/wanxing/image`：`{provider: ciyuan, base_url: <词元网关>,
+      ⛔ 需要 vault 写权限（并保留旧记录以便回滚）
       api_key: <组19 key>, model: grok-imagine-image}`；保留一份旧记录以便回滚
 - [ ] 2.3 用真实 `generate_image` 打一发（不是 `registry_list_generators` 读状态），
+      ⛔ 依赖 2.2 的凭据
       以「产物落盘 + 形状合规」为通过判据
 
 ## 3. 台账与镜像
 
 - [ ] 3.1 实调通过后改 `mcp-server/mcp_server/lane_health.json`：
+      ⛔ 依赖 2.3 的实调证据（MUST NOT 无证据翻 active）
       `image.ciyuan` → `active`，`last_verified` 写当日，`reason` 写明生效的
       provider/model 与分组；`video.ciyuan` 保持 `down`（同一被封账号未解）
 - [ ] 3.2 出片并滚到 china-<node-a>（`VAAS_HOSTED=1` 那台）；判据 = 容器内
+      ⛔ 需要构建通道 + china-<node-a> 的 shell（<render-node-a> 现为 Permission denied）
       `lane_health.json` 内容 + 公网 `registry_list_generators` 回读
 - [ ] 3.3 滚版后复跑一次 `generate_image`，确认走的是新车道
+      ⛔ 依赖 3.2
 
 ## 4. 结构成因与台账订正
 
@@ -41,14 +47,17 @@
       `fallback_group_id` 为空 ⇒ 单点」，并记下组 19 这条可用替代车道与其成本（2K/$0.02）
 - [x] 4.2 补一条「车道状态自证循环」的说明：`down` 会阻断上游探测，`last_verified`
       不会自己前进；复验是人的动作，不是系统行为
-- [ ] 4.3 视频车道 `seedance-ciyuan` 的处置单独写清：与图像同源（acct 40），
-      随账号替换/解封一起恢复，不在本 change 内先行翻状态
+- [x] 4.3 视频车道 `seedance-ciyuan` 的处置：与图像**同源**（词元组 9 唯一账号 acct 40），
+      因此不在本 change 内单独翻状态——账号替换/解封后由同一次实调一并恢复。
+      若将来只恢复图像（换分组）而视频仍走 acct 40，则两车道必须分别记账，
+      MUST NOT 因为图像 active 就把视频也标成可用
 
 ## 5. 验证
 
 - [x] 5.1 `openspec validate add-image-lane-fallback --strict` 通过
 - [x] 5.2 单测全绿；`scripts/_ciyuan_image.py` 对新形态有红证（先让用例在旧代码上失败）
 - [ ] 5.3 现网回读：`registry_list_generators` 的 `image.ciyuan` 为 active 且
+      ⛔ 依赖 3.2 滚版
       `last_verified` 是本次实调日期
 
 ## 6. 复验探针（把手工配方变成工具）
@@ -61,6 +70,7 @@
 - [x] 6.4 离线用例 9 条（三态各自成立 + 互不冒充 + key 不出现在输出里）；真打
       `router.finddatatech.cloud` 冒烟一次（无效 key → `credential_rejected`，不消耗额度）
 - [ ] 6.5 拿到可用 key 后跑一次真复验，把结论回填 `docs/debt-ledger.md` 的
+      ⛔ 依赖 2.2 的凭据
       DEBT-LANE-9-01-REVERIFY 行（前置=任务 2 的凭证决定）
 
 ## 7. 台账陈旧度（本轮新增）
@@ -74,4 +84,5 @@
       （**这正是陈旧 `active` 的形态：它会被当成「能用」推荐出去**）；
       `image/video.ciyuan` 3 天 → 未超期，不误报
 - [ ] 7.5 复验周期是否要按车道类型再分档（小时级更短）、以及发现面展示文案，
+      ⛔ 需要先有一次真实复验来观察判定形态，再定分档
       留给实体检后定；当前只做「标出来」不做「自动降级」
