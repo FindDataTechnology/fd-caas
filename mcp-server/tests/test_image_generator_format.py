@@ -76,3 +76,12 @@ def test_missing_format_falls_back_to_requested(monkeypatch, isolated):
     res = gen_image.generate(prompt="一只猫", output_format="jpeg")
     assert res["file_paths"][0].endswith(".jpeg")
     assert not any("different container" in w for w in res["warnings"])
+
+
+def test_container_outside_contract_is_disclosed(monkeypatch, isolated):
+    """契约外容器（tiff/heic/avif）不丢产物，但要点名，别让它在发布环节才炸。"""
+    monkeypatch.setattr(gen_image, "run_bridge", _bridge_returning(isolated, "tiff"))
+    res = gen_image.generate(prompt="一只猫", output_format="jpeg")
+    assert res["file_paths"][0].endswith(".tiff")
+    assert any("outside the supported output formats" in w for w in res["warnings"])
+    assert any("different container" in w for w in res["warnings"])

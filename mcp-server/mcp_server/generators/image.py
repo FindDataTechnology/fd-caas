@@ -19,7 +19,10 @@ SCRIPTS_DIR = VAAS_ROOT / "scripts"
 LITELLM_BRIDGE = SCRIPTS_DIR / "litellm-bridge.py"
 
 # Output filename extension whitelist (path-traversal guard; same discipline
-# as the render plane's still_chart).
+# as the render plane's still_chart). This is the **request** contract: what a
+# caller may ask for. The artifact is named after the container the upstream
+# actually returned, which can fall outside this set (e.g. tiff/heic/avif);
+# that case is delivered truthfully AND disclosed, see `unsupported_containers`.
 IMAGE_FORMATS = {"png", "jpeg", "jpg", "webp"}
 
 # Providers whose image request actually honors `n` (else the call must
@@ -116,6 +119,7 @@ def generate(
     # Collect generated image paths
     file_paths = []
     format_mismatches: list[tuple[str, str]] = []
+    unsupported_containers: set[str] = set()
     images = output.get("images", [])
 
     for i, img in enumerate(images):
@@ -136,6 +140,8 @@ def generate(
 
             if actual_format != output_format:
                 format_mismatches.append((actual_format, output_format))
+            if actual_format not in IMAGE_FORMATS:
+                unsupported_containers.add(actual_format)
 
             if src_path != dst_path:
                 src_path.rename(dst_path)
@@ -155,6 +161,14 @@ def generate(
         warnings.append(
             "upstream returned a different container than requested "
             f"({', '.join(pairs)}); files are named by their actual format"
+        )
+    if unsupported_containers:
+        # 契约外容器：产物保留并如实命名（丢掉它等于让上游白计费一次），
+        # 但必须点名——下游（发布技能按扩展名选上传类型）可能不认。
+        warnings.append(
+            "artifact container(s) outside the supported output formats "
+            f"{sorted(unsupported_containers)} (contract: {sorted(IMAGE_FORMATS)}); "
+            "kept and named truthfully — convert before publishing"
         )
     if len(file_paths) < n:
         if provider_actual not in N_SUPPORTED_PROVIDERS:

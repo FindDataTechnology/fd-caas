@@ -15,6 +15,9 @@
 - [x] 1.6 `generators/image.py`：扩展名取**实际容器**而非请求的 `output_format`，
       不一致时在 `warnings` 披露（旧行为会产出「叫 .jpeg 的 PNG」，下游按扩展名选上传类型）
 
+- [x] 1.7 契约外容器（tiff/heic/avif）：产物保留 + 如实命名 + `warnings` 点名，
+      MUST NOT 丢弃（丢弃=上游白计费）也 MUST NOT 谎报扩展名（见 design D6）
+
 ## 2. 换上游（数据，不出片）
 
 - [ ] 2.1 取一条可用的图像上游凭证：组 19 `fed-workbuddy-media`（acct 57，

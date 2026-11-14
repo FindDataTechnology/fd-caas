@@ -44,6 +44,13 @@ SHALL 在响应 `warnings` 中如实披露。
 - **THEN** 该次生成失败并指出首字节内容
 - **AND** MUST NOT 把该字节写成产物文件（旧行为会写成一个打不开的假图片）
 
+#### Scenario: 契约外容器保留并点名
+
+- **WHEN** 上游返回的容器不在请求契约（`png`/`jpeg`/`webp`）之内（如 tiff/heic/avif）
+- **THEN** 产物 SHALL 保留并按其真实容器命名，MUST NOT 因容器不合约而丢弃
+  （上游已计费，丢弃等于让客户白付一次）
+- **AND** 响应 `warnings` MUST 点名该容器契约外并提示发布前转换
+
 #### Scenario: 扩展名跟实际容器走
 
 - **WHEN** 上游返回的容器与调用者请求的 `output_format` 不一致（如请求 jpeg、实得 PNG）
