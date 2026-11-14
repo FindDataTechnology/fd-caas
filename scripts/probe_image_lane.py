@@ -141,7 +141,7 @@ def main(argv: list[str] | None = None) -> int:
         return STILL_BLOCKED
 
     local = Path(images[0]["local_path"])
-    head = local.read_bytes()[:32] if local.exists() else b""
+    head = local.read_bytes()[:32] if local.exists() else b""  # read_bytes closes the handle
     if not head or not _looks_like_image(head):
         summary = {"verdict": "still-blocked", "verdict_class": "not_an_image",
                    "reason": "produced file is empty or not a known image format",

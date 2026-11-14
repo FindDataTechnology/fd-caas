@@ -82,8 +82,12 @@ def _host_only(url: str) -> str:
         return "<unparseable>"
 
 
-def _download_image(url: str, dest: str) -> int:
-    """Download one image URL into `dest`; return bytes written.
+def _download_image(url: str, dest: str) -> tuple[int, str]:
+    """Download one image URL into `dest`; return (bytes written, detected format).
+
+    The format comes from the bytes we already have in memory — the caller must
+    NOT re-open the file to sniff it (that leaked a descriptor per image on a
+    long-lived server, and re-read what was just written).
 
     Fails closed on every envelope violation. Reads in bounded chunks so an
     over-size body is cut off mid-stream instead of after the fact.
@@ -133,9 +137,10 @@ def _download_image(url: str, dest: str) -> int:
             f"ciyuan image url host={parsed.hostname} body is not a known image format "
             "(magic number check failed)"
         )
+    fmt = _detect_format(raw)
     with open(dest, "wb") as f:
         f.write(raw)
-    return len(raw)
+    return len(raw), fmt or ""
 
 
 def generate(
@@ -218,8 +223,7 @@ def generate(
         url = item.get("url")
         if url:
             # 只在缺 b64 时才走 url（design D1：b64 优先，顺序固定）
-            written = _download_image(str(url), path)
-            fmt = _detect_format(open(path, "rb").read(32))
+            written, fmt = _download_image(str(url), path)
             images.append({"local_path": path, "file_size_bytes": written, "format": fmt})
             continue
         # 两种形态都缺：如实报错，绝不猜
