@@ -34,9 +34,9 @@
       "last_verified": "2026-10-06"
     },
     "image.grok": {
-      "health": "degraded",
+      "health": "active",
       "reason_class": "none",
-      "reason": "provider=grok 直连图像档（组 19）：代码路径与 ciyuan 档同一驱动（`_ciyuan_image.generate`），同一上游已由 image.ciyuan 条目带实调证据（台账行 386469），但本档尚无独立实调 ⇒ 记 degraded 并如实说明；首次真调后翻 active",
+      "reason": "**2026-11-15 实调销账**（`provider=grok` 独立一次，不经 image.ciyuan 借证）：经 `scripts/litellm-bridge.py image` 打组 19，真产物落盘 1,500,323 B / PNG 1024x1024 8-bit RGB（`file` 与 PNG 头双核），`file_size_bytes` 与磁盘一致，`api_latency_ms` 20271。**并且真记账**：`usage_logs` 出 1 行 （2026-11-15 01:14:06Z / `grok-imagine-image` / `image_count=1` / `total_cost 0.02` / `request_id client:81685aa3-…`）—— 图片路径不欠账。凭证仍是组 19 专用钥（api_keys id 182 / user 128，本次从密文解回并核 sha256 前缀 `87460efa6380` 相等，未另铸新钥）。**披露一**：本次 `upstream_model` 回显 `grok-imagine-image`，与请求一致；而 image.ciyuan 那次的实测披露是「请求 grok-imagine-image、hunyuan-image-alpha 承做」⇒ 承做方会漂，别把任一次的回显当成恒定事实。**披露二**：与 video 相反，图片这条**有**用量行，所以「视频不记账」是视频谓词的问题、不是整个媒体面的问题。",
       "last_verified": "2026-11-15"
     },
     "video.ciyuan": {
@@ -54,7 +54,7 @@
     "video.grok": {
       "health": "active",
       "reason_class": "none",
-      "reason": "**2026-11-15 实调销账**（`/v1/videos` 全链，经 `scripts/_grok_video.py` 真实驱动）：任务 `vid_84655a2f5a1f13ee` → 真 MP4 落盘 3,140,407 B / h264 1280x720 + aac / 3.04s（ffprobe 独立核过）；上游自报承做 `kling-video-v3`、`seconds:3`、`resolution:720P`。两条披露同时真实触发：请求 1s 被夹紧到上游下限 3s、请求 480p 实得 720P。端到端凭证=组 19 专用钥（api_keys id 182 / user 128，`last_used_at` 证明密文鉴权路径已通）。**已知上游缺陷（不属本车道）：视频完成不落 `usage_logs`**——sub2api `grok_media.go` 计费谓词等 `status==\"done\"`+`video.url`，上游实际回 `status:\"completed\"`+扁平 `url`，故本次调用同样无用量行（2h 内视频类 0 行，实测复现）。本条目只证车道可用，不证计费正确",
+      "reason": "**2026-11-15 实调销账**（`/v1/videos` 全链，经 `scripts/_grok_video.py` 真实驱动）：任务 `vid_84655a2f5a1f13ee` → 真 MP4 落盘 3,140,407 B / h264 1280x720 + aac / 3.04s（ffprobe 独立核过）；上游自报承做 `kling-video-v3`、`seconds:3`、`resolution:720P`。两条披露同时真实触发：请求 1s 被夹紧到上游下限 3s、请求 480p 实得 720P。端到端凭证=组 19 专用钥（api_keys id 182 / user 128，`last_used_at` 证明密文鉴权路径已通）。**已知上游缺陷（不属本车道）：视频完成不落 `usage_logs`**——sub2api `grok_media.go` 计费谓词等 `status==\"done\"`+`video.url`+数字时长，上游实际回 `status:\"completed\"`+扁平 `url`+字符串 `seconds`，三处形状假设同时落空，故本次调用同样无用量行（2h 内视频类 0 行，实测复现）。**该缺陷已在代码里修好、尚未上线**：sub2api commit `8930b8adb`（分支 `fix/grok-video-billing-compat-shapes`，open spec change `grok-video-billing-compat-shapes`），单测 16/16 绿、`go build`/`go vet` 通过；上线后同样的调用应出现 `grok-video:<task>` 用量行——那时再回来把本条改成「车道可用且计费正确」。在此之前本条目只证车道可用",
       "last_verified": "2026-11-15"
     },
     "render.local": {
