@@ -117,6 +117,13 @@ curl -s http://127.0.0.1:30950/health          # {"ok":true,"hosted":true}
 本次改造前实测四条 image/video 车道全 down（volcengine 未配凭据、ciyuan 组 9 被封），
 **没有任何 grok 条目**——所以「出现 grok 两条」本身就是「新镜像生效了」的证据。
 
+> **别把 `model: "${GROK_IMAGE_MODEL}"` 当成缺陷**：`registry.py::_resolve` 对未设的
+> 环境变量**原样保留**占位符，而这些名字只由 `subprocess_env` 注入桥接器子进程、
+> 不在服务进程的 env 里。它只影响发现面的显示（`voice` 那条 `${TTS_MODEL}` 从上线
+> 起就是这样），**进不了调用路径**：`generate_image` 与 `generate_video_submit`
+> 的签名里都没有 `model` 参数，桥接器取的是自己进程里的 `GROK_*_MODEL` / 缺省值。
+> 真要让它显示得好看，就在部署侧 `.env` 里补 `GROK_IMAGE_MODEL` / `GROK_VIDEO_MODEL`。
+
 ### 3.2 真调一次（判据是产物，不是 200）
 
 ```bash
