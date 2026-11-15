@@ -41,10 +41,13 @@ subprocess_env(resolved)   → 按记录的 provider 生成桥接器 env
 litellm-bridge             → 按 <KIND>_PROVIDER 分派（grok / ciyuan / volcengine）
 ```
 
-`pool/wanxing/{image,video}` **不存在**时直接抛
-`no <kind> credential in vault: pool/wanxing/<kind> and service/default/<kind> are both missing`。
-所以只滚镜像、不写 vault ＝车道仍然不可用，但这次至少错误信息会明确指向 vault
-（而不是像以前那样在注册表上显示 active、调用时才炸）。
+`pool/wanxing/{image,video}` **不存在**时，实际抛的是
+**`IdentityRequired: hosted call without valid service credential`**——
+**不是** `no <kind> credential in vault`（那条是 `resolve()` 抛的，而身份/车道闸在
+`resolve()` **之前**就拦下了；2026-11-16 用 `VAAS_HOSTED=1` + 空 vault 实跑
+`runtime.prepare()` 逐字核过，image 与 video 同形）。
+所以只滚镜像、不写 vault ＝车道仍然不可用，而且**报错里不会出现 "vault" 这个词**
+——看到 `IdentityRequired` 先查 `pool/wanxing/<kind>` 有没有记录，不要先怀疑网关或 token。
 
 写入内容（`provider` 必须写 `grok`——**不能**写 `ciyuan`）：
 
