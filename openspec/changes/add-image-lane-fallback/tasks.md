@@ -143,3 +143,12 @@
 - [x] 8.10 registry 发现面挂 grok 条目：`seedream-grok`/`seedance-grok`
       （provider=grok，model 占位 `${GROK_IMAGE_MODEL}`/`${GROK_VIDEO_MODEL}`，
       通用 `${ENV}` 解析已覆盖；车道闸对未知车道 degraded 放行，凭据入 vault 前即可见不可用）
+- [x] 8.11 图像车道实调销账（2026-11-15）：`provider=grok` **独立一次**，不经
+      `image.ciyuan` 借证 —— 经 `scripts/litellm-bridge.py image` 打组 19，真产物
+      1,500,323 B / PNG 1024x1024 8-bit RGB，`api_latency_ms` 20271；**并且真记账**
+      （`usage_logs` 1 行：`grok-imagine-image` / `image_count=1` / $0.02 /
+      `client:81685aa3-…`）。凭证复用 8.8a 的 id 182（从密文解回并核 sha256 前缀
+      `87460efa6380` 相等，未另铸新钥；明文用后即碎）。`lane_health.json`
+      `image.grok` → `active`，并把「承做方会漂」「图片有记账而视频没有」两条披露
+      写进条目；`annotate()` 实测 `seedream-grok` 带 `lane.health=active / stale=false`。
+      MCP 侧单测 537 passed / 15 skipped
