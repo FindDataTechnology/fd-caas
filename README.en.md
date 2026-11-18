@@ -1,15 +1,15 @@
-# VAAS - Variable Asset Authoring & Syndication
+# CaaS - Communicate as a Service
 
-> **Facet (谦面) product line** · the content-creation line of [FindData](https://www.finddatatech.cloud/products/facet) — natural-language video creation and multi-platform publishing skills.
+> **Facet (谦面) product line** · the content-creation line of [FindData](https://www.finddatatech.cloud/products/facet) — turn a demand into something seen or heard (video, articles, charts, documents, voice), then deliver it in the form each recipient can read.
 
 > **🌐 Language:** [简体中文](README.md) · English (this file)
 
-> 🚀 **One-line install:** `curl -fsSL https://raw.githubusercontent.com/FindDataTechnology/fd-vaas-skills/main/install.sh | bash`
+> 🚀 **One-line install:** `curl -fsSL https://raw.githubusercontent.com/FindDataTechnology/fd-caas/main/install.sh | bash`
 
 ## ⚡ Your first video in 5 minutes
 
 ```bash
-export VAAS=<path to the cloned VAAS repo, e.g. ~/fd-vaas-skills>   # all commands below use $VAAS
+export VAAS=<path to the cloned VAAS repo, e.g. ~/fd-caas>   # all commands below use $VAAS
 
 # 1. Install (skip if you already ran the one-line install)
 cd $VAAS && ./install.sh
@@ -111,7 +111,7 @@ The `fd-vaas-*` skills are the wired demand-to-publish pipeline.
 3. **`/fd-vaas-publish-videos`** - one video -> 6 platforms. Distribution uses "**vendor upstream + thin adapter layer**": upstream `social-auto-upload` vendored in `scripts/upstream/`, `sau_adapter.py` translates CLI into upstream `<Platform>Video(...).main()` calls, unified **py runtime (patchright)**; bilibili exception (upstream uses biliup binary, handled by local `bilibili.py`). Login state via cookie files (`upstream/cookies/<platform>_uploader/account.json`, kuaishou uses `kuaishou_creator.json`), managed by `/fd-vaas-login` unified QR scan. Reads per-platform preferences from `.env` (tags, `<PLATFORM>_SHORT_TITLE`, `YOUTUBE_VISIBILITY`, `SCHEDULE`), writes results back to `task.json`'s `distribution[]`. `--dry-run` previews the commands.
 
 ```bash
-export VAAS=<path to the cloned VAAS repo, e.g. ~/fd-vaas-skills>   # all commands below use $VAAS
+export VAAS=<path to the cloned VAAS repo, e.g. ~/fd-caas>   # all commands below use $VAAS
 SKILL_V=$VAAS/.agents/skills/fd-vaas-video-creator/scripts
 SKILL_P=$VAAS/.agents/skills/fd-vaas-publish-videos/scripts
 
@@ -173,7 +173,7 @@ VAAS/
 └── AGENTS.md                           # engineering guidance for Claude Code
 ```
 
-> **The VAAS root is a git repository** (remote: `github.com/FindDataTechnology/fd-vaas-skills`). `downloads/`, `demands/`, `demand.md`, `.env` are gitignored. `social-auto-upload` upstream vendored into `fd-vaas-publish-videos/scripts/upstream/` (not standalone root directory); use `.agents/skills/fd-vaas-publish-videos/scripts/sync-upstream.sh` to sync upstream updates (keep edits in the thin adapter layer — hand edits inside the vendor tree are wiped by the next `rsync --delete`). Hosted image single source: canonical `deploy/mcp-server.Dockerfile`; root `./Dockerfile` is generated from it (`bash scripts/gen-root-dockerfile.sh`).
+> **The VAAS root is a git repository** (remote: `github.com/FindDataTechnology/fd-caas`). `downloads/`, `demands/`, `demand.md`, `.env` are gitignored. `social-auto-upload` upstream vendored into `fd-vaas-publish-videos/scripts/upstream/` (not standalone root directory); use `.agents/skills/fd-vaas-publish-videos/scripts/sync-upstream.sh` to sync upstream updates (keep edits in the thin adapter layer — hand edits inside the vendor tree are wiped by the next `rsync --delete`). Hosted image single source: canonical `deploy/mcp-server.Dockerfile`; root `./Dockerfile` is generated from it (`bash scripts/gen-root-dockerfile.sh`).
 
 ---
 

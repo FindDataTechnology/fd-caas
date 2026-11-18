@@ -40,7 +40,7 @@ via its built-in uploaders under `scripts/platforms/` (thin adapter `sau_adapter
 
 ## Repository shape - read this first
 
-- The VAAS root **is a git repository** (remote: `github.com/FindDataTechnology/fd-vaas-skills`).
+- The VAAS root **is a git repository** (remote: `github.com/FindDataTechnology/fd-caas`).
 - **Skills source of truth = `.agents/skills/`** (tracked in git, 25 skills + `_shared`). `.claude/skills/`
   holds **symlinks** to a subset of them so Claude Code can invoke them as `/<name>`. Skills not
   symlinked there are still usable by pointing Claude at their `.agents/skills/<name>/SKILL.md`.

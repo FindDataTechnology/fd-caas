@@ -8,7 +8,7 @@
 
 | 项 | 值 | 怎么核 |
 |---|---|---|
-| 源码 | `fd-vaas-skills` main = `274872d` | `git ls-remote origin refs/heads/main` |
+| 源码 | `fd-caas` main = `274872d` | `git ls-remote origin refs/heads/main` |
 | 快照仓 | `law-ai-official/vaas-mcp-images` @ `4ee70c4` | `gh api repos/law-ai-official/vaas-mcp-images/commits/main -q .sha` |
 | 镜像 tag | `yizuo/vaas-mcp:sha-4ee70c4` | 见下 |
 | 镜像 digest | `sha256:239d6f1b3cf46a04109551d3e82bfabd3ca53b546169c22b04c6518d6f4d1f85` | hkccr 与 ccr **同一个值** |

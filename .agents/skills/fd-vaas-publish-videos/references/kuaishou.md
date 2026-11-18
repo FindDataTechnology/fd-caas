@@ -70,7 +70,7 @@ await js(`document.querySelector('._button-primary_3a3lq_60')?.click()`);
 ## 快速使用
 
 ```bash
-export VAAS=<VAAS 仓库根目录,如 ~/fd-vaas-skills>   # 后续命令都用 $VAAS 指代
+export VAAS=<VAAS 仓库根目录,如 ~/fd-caas>   # 后续命令都用 $VAAS 指代
 SKILL=$VAAS/.agents/skills/d-vaas-publish-videos/scripts/platforms
 
 node $SKILL/kuaishou.mjs \

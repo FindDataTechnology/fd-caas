@@ -1,15 +1,15 @@
-# VAAS - 可变资源创作与分发
+# CaaS - 内容即服务（Communicate as a Service）
 
-> **谦面 Facet 产品线** · [寻数 FindData](https://www.finddatatech.cloud/products/facet) 的内容创作线 —— 自然语言视频创作与多平台分发技能链。
+> **谦面 Facet 产品线** · [寻数 FindData](https://www.finddatatech.cloud/products/facet) 的内容创作线 —— 把需求变成可被看见/听见的内容（视频、图文、图表、文档、语音），并按收件方的能力投递出去。
 
 > **🌐 语言：** 简体中文（本文件） · [English](README.en.md)
 
-> 🚀 **一键安装：** `curl -fsSL https://raw.githubusercontent.com/FindDataTechnology/fd-vaas-skills/main/install.sh | bash`
+> 🚀 **一键安装：** `curl -fsSL https://raw.githubusercontent.com/FindDataTechnology/fd-caas/main/install.sh | bash`
 
 ## ⚡ 5 分钟第一支视频
 
 ```bash
-export VAAS=<克隆下来的仓库根目录，如 ~/fd-vaas-skills>   # 后续命令都用 $VAAS 指代
+export VAAS=<克隆下来的仓库根目录，如 ~/fd-caas>   # 后续命令都用 $VAAS 指代
 
 # 1. 安装（已跑过一键安装可跳过）
 cd $VAAS && ./install.sh
@@ -108,7 +108,7 @@ VAAS 是架在两半之上的一个**编排层**，自身没有应用代码：
 3. **`/fd-vaas-publish-videos`**--一支视频 -> 6 个平台。分发走「**vendor 上游 + 薄适配层**」：上游 `social-auto-upload` vendored 在 `scripts/upstream/`，`sau_adapter.py` 把 CLI 翻译成上游 `<Platform>Video(...).main()` 调用，统一 **py 运行时（patchright）**；bilibili 例外（上游用 biliup 二进制，走本地 `bilibili.py`）。登录态是 cookie 文件（`upstream/cookies/<platform>_uploader/account.json`，快手用 `kuaishou_creator.json`），由 `/fd-vaas-login` 统一扫码。从 `.env` 读取各平台偏好（标签、`<PLATFORM>_SHORT_TITLE`、`YOUTUBE_VISIBILITY`、定时（`SCHEDULE`）），把结果回写到 `task.json` 的 `distribution[]`。`--dry-run` 可预览命令。
 
 ```bash
-export VAAS=<VAAS 仓库根目录,如 ~/fd-vaas-skills>   # 后续命令都用 $VAAS 指代
+export VAAS=<VAAS 仓库根目录,如 ~/fd-caas>   # 后续命令都用 $VAAS 指代
 SKILL_V=$VAAS/.agents/skills/fd-vaas-video-creator/scripts
 SKILL_P=$VAAS/.agents/skills/fd-vaas-publish-videos/scripts
 
@@ -185,7 +185,7 @@ VAAS/
 └── AGENTS.md                           # 给 Claude Code 的工程指引
 ```
 
-> **VAAS 根目录是一个 git 仓库**（远程：`github.com/FindDataTechnology/fd-vaas-skills`）。`downloads/`、`demands/`、`demand.md`、`.env`、`.mcp.json` 已 gitignore。`social-auto-upload` 上游被 vendor 进 `fd-vaas-publish-videos/scripts/upstream/`（不是根目录独立目录）；用 `.agents/skills/fd-vaas-publish-videos/scripts/sync-upstream.sh` 同步上游更新（改动只落适配层，vendor 内手改会被下次 rsync --delete 冲掉）。托管镜像单源：canonical 在 `deploy/mcp-server.Dockerfile`，根 `./Dockerfile` 由其生成（`bash scripts/gen-root-dockerfile.sh`）。
+> **VAAS 根目录是一个 git 仓库**（远程：`github.com/FindDataTechnology/fd-caas`）。`downloads/`、`demands/`、`demand.md`、`.env`、`.mcp.json` 已 gitignore。`social-auto-upload` 上游被 vendor 进 `fd-vaas-publish-videos/scripts/upstream/`（不是根目录独立目录）；用 `.agents/skills/fd-vaas-publish-videos/scripts/sync-upstream.sh` 同步上游更新（改动只落适配层，vendor 内手改会被下次 rsync --delete 冲掉）。托管镜像单源：canonical 在 `deploy/mcp-server.Dockerfile`，根 `./Dockerfile` 由其生成（`bash scripts/gen-root-dockerfile.sh`）。
 
 ---
 

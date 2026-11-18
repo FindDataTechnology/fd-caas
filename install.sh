@@ -1,6 +1,6 @@
 #!/bin/bash
 # VAAS 一键安装脚本
-# 用法 A（远程）: curl -fsSL https://raw.githubusercontent.com/FindDataTechnology/fd-vaas-skills/main/install.sh | bash
+# 用法 A（远程）: curl -fsSL https://raw.githubusercontent.com/FindDataTechnology/fd-caas/main/install.sh | bash
 # 用法 B（本地）: 在已克隆的仓库根目录执行 ./install.sh
 #
 # 设计原则：任何检查失败只警告不中断，最后汇总报告。
@@ -12,7 +12,7 @@ ok()   { echo "✅ $1"; }
 warn() { echo "⚠️  $1"; WARNINGS+=("$1"); }
 info() { echo "   $1"; }
 
-REPO_URL="https://github.com/FindDataTechnology/fd-vaas-skills.git"
+REPO_URL="https://github.com/FindDataTechnology/fd-caas.git"
 
 # ---------- 0. 定位仓库根 ----------
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-install.sh}")" 2>/dev/null && pwd || echo "")"
@@ -20,15 +20,15 @@ if [ -n "$SCRIPT_DIR" ] && [ -d "$SCRIPT_DIR/.agents/skills" ]; then
     ROOT="$SCRIPT_DIR"
     echo "📂 在已有克隆中运行: $ROOT"
 else
-    # curl | bash 模式：克隆到 ./fd-vaas-skills
-    if [ ! -d "fd-vaas-skills" ]; then
+    # curl | bash 模式：克隆到 ./fd-caas
+    if [ ! -d "fd-caas" ]; then
         echo "📥 克隆 VAAS 仓库..."
         git clone "$REPO_URL" || { echo "❌ 克隆失败，请检查网络后重试"; exit 1; }
     else
-        echo "📂 fd-vaas-skills 目录已存在，跳过克隆（git pull 更新）"
-        git -C fd-vaas-skills pull --ff-only 2>/dev/null || warn "git pull 失败，继续使用现有版本"
+        echo "📂 fd-caas 目录已存在，跳过克隆（git pull 更新）"
+        git -C fd-caas pull --ff-only 2>/dev/null || warn "git pull 失败，继续使用现有版本"
     fi
-    ROOT="$(cd fd-vaas-skills && pwd)"
+    ROOT="$(cd fd-caas && pwd)"
 fi
 cd "$ROOT" || exit 1
 echo "🚀 VAAS 安装开始（根目录: ${ROOT}）"
@@ -216,4 +216,4 @@ echo "      浏览器打开 http://localhost:8766 扫码完成各平台登录（
 echo "   3. 看 README「5 分钟第一支视频」快速路径"
 echo "   4. cd $ROOT && claude   （在 Claude Code 中使用 /fd-* 技能）"
 echo ""
-echo "🔗 项目地址: https://github.com/FindDataTechnology/fd-vaas-skills"
+echo "🔗 项目地址: https://github.com/FindDataTechnology/fd-caas"

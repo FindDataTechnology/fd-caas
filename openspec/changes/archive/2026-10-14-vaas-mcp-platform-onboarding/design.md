@@ -42,7 +42,7 @@ VAAS HTTP 服务加 `GET /download/{asset_id}`（HMAC 签名绑 asset_id+owner+e
 谦面目录每线一条（`/vaas-wanxing` 试点，`/vaas-base` 待验收）；两实例同宿 <node> compose（与网关、OpenBAO 同机，代理可达 + 内网绑定）；上游鉴权用静态 egress bearer；网关保守限流作成本保险丝。
 
 ### D-H 开源边界
-解析器/异步/端点代码进公开仓 fd-vaas-skills（逻辑无秘密）；vault 路径、池凭证、bootstrap token、定价初值、注册配置全在私有部署侧。
+解析器/异步/端点代码进公开仓 fd-caas（逻辑无秘密）；vault 路径、池凭证、bootstrap token、定价初值、注册配置全在私有部署侧。
 
 ## Risks / Trade-offs
 

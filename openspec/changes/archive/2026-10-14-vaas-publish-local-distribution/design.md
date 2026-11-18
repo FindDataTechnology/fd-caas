@@ -2,7 +2,7 @@
 
 ## Context
 
-托管生成面已上线（<node-a>，`/vaas-wanxing`，owner 隔离 + 签名下载 URL）；发布面六工具按 ADR-0004 永不上云，依赖平台登录态 + 人工确认。用户实际形态是本地跑 fd-vaas-skills MCP；登录管理页（fd-vaas-login）与两发布技能（publish-docs/videos，ego-browser/patchright 双运行时）全部现成。缺口只在三处胶水：云端产物拉取入口、谦面分装、给用户的安全说明。
+托管生成面已上线（<node-a>，`/vaas-wanxing`，owner 隔离 + 签名下载 URL）；发布面六工具按 ADR-0004 永不上云，依赖平台登录态 + 人工确认。用户实际形态是本地跑 fd-caas MCP；登录管理页（fd-vaas-login）与两发布技能（publish-docs/videos，ego-browser/patchright 双运行时）全部现成。缺口只在三处胶水：云端产物拉取入口、谦面分装、给用户的安全说明。
 
 ## Goals / Non-Goals
 

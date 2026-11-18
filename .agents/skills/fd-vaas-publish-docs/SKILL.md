@@ -92,7 +92,7 @@ downloads/fd-docs/<slug>/
 配置在**项目根 `.env`**(和 TTS/seedream/fd-vaas-publish 共享一个),不在 skill 目录里。首次用:
 
 ```bash
-export VAAS=<VAAS 仓库根目录,如 ~/fd-vaas-skills>   # 后续命令都用 $VAAS 指代
+export VAAS=<VAAS 仓库根目录,如 ~/fd-caas>   # 后续命令都用 $VAAS 指代
 cd $VAAS
 [ -f .env ] || cp .env.example .env
 $EDITOR .env   # 改 PLATFORMS_DOCS 和各平台 XXX_DOC_TAGS

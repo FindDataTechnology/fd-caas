@@ -47,7 +47,7 @@ await js(`(() => {
 ## 快速使用
 
 ```bash
-export VAAS=<VAAS 仓库根目录,如 ~/fd-vaas-skills>   # 后续命令都用 $VAAS 指代
+export VAAS=<VAAS 仓库根目录,如 ~/fd-caas>   # 后续命令都用 $VAAS 指代
 SKILL=$VAAS/.agents/skills/d-vaas-publish-videos/scripts/platforms
 
 node $SKILL/bilibili.mjs \

@@ -2,7 +2,7 @@
 
 ## Summary
 
-让公开仓库 `FindDataTechnology/fd-vaas-skills` 达到「新用户 clone → 跑 install.sh → doctor 自检 → 5 分钟渲出第一支口播视频」的水平。签入渲染源码与 MCP 服务器，收敛 .gitignore，升级安装脚本，提供自检工具与快速上手路径。
+让公开仓库 `FindDataTechnology/fd-caas` 达到「新用户 clone → 跑 install.sh → doctor 自检 → 5 分钟渲出第一支口播视频」的水平。签入渲染源码与 MCP 服务器，收敛 .gitignore，升级安装脚本，提供自检工具与快速上手路径。
 
 ## Motivation
 

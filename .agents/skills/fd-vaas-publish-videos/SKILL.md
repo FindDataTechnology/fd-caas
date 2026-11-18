@@ -103,7 +103,7 @@ vendor 让我们免费获得上游的 bugfix，`sync-upstream.sh` 一键同步�
 ### 一键多平台发布（推荐）
 
 ```bash
-export VAAS=<VAAS 仓库根目录,如 ~/fd-vaas-skills>   # 后续命令都用 $VAAS 指代
+export VAAS=<VAAS 仓库根目录,如 ~/fd-caas>   # 后续命令都用 $VAAS 指代
 SKILL=$VAAS/.agents/skills/fd-vaas-publish-videos/scripts
 
 # 最简：发到 .env 里配的默认平台
