@@ -1,0 +1,34 @@
+# 共享实现见 FindDataTechnology/fd-ci（openspec: extract-shared-ci-workflow）。
+#
+# **本仓此前没有出片 workflow** —— 出片靠 law-ai-official/vaas-mcp-images 那个私有
+# 镜像仓（2026-11-18 还在成功出片）。那个壳存在的唯一理由是「私有源仓 Actions
+# 额度不够」，而本仓现在是公开仓（Actions 免费无限），理由消失。
+#
+# 按 one-repo-per-project 的标准形态补上本仓自己的出片；随后
+# law-ai-official/vaas-mcp-images 归档（它已经是 law-ai-official 最后一个活跃仓）。
+#
+# 两个镜像各有自己的 Dockerfile 与上下文 —— 写两个 job，不是一个 job 的循环。
+name: image
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  mcp-server:
+    uses: FindDataTechnology/fd-ci/.github/workflows/image-build.yml@main
+    secrets: inherit
+    with:
+      image: vaas-mcp-server
+      namespace: yizuo
+      dockerfile: deploy/mcp-server.Dockerfile
+
+  render-plane:
+    uses: FindDataTechnology/fd-ci/.github/workflows/image-build.yml@main
+    secrets: inherit
+    with:
+      image: vaas-render-plane
+      namespace: yizuo
+      context: render-plane
+      dockerfile: render-plane/Dockerfile
