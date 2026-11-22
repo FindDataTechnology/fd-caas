@@ -26,7 +26,7 @@
 - [x] 2.1 物料库新增 citations 表（绑定 asset_id、provenance、status、owner）。
   验证：`vaas-init-db` 幂等建表；既有库启动无副作用（复用 material-store 自举口径）。
 - [x] 2.2 引用回查与 owner 隔离。验证：单测「按 id 回查命中」+「跨租户访问被拒」。
-- [ ] 2.3 给实论 verify 引擎套一层可调用面（默认 MCP 工具，与车道同构；
+- [x] 2.3 给实论 verify 引擎套一层可调用面（默认 MCP 工具，与车道同构；
   若改 HTTP 端点需处理鉴权与出口）。验证：CaaS 侧薄客户端能调通、返回判定与依据。
   **注：这条是工作量增量——引擎现为 FastAPI 内部模块，非现成 MCP 工具。**
   **范围裁定（A 案）**：给引擎套可调用面 = 改 fd-shilun 代码；本 change proposal 明确
