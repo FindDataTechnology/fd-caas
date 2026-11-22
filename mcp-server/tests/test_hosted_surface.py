@@ -7,8 +7,8 @@ CANONICAL_TOOLS filtered by is_hosted() when the module loads), so flipping
 VAAS_HOSTED inside this pytest process cannot re-register the surface — a
 subprocess per state is the reliable isolation.
 
-  stdio  (default)            → 23 tools: 17 hosted + 6 publish (stdio-only plane)
-  hosted (VAAS_HOSTED=1)      → 17 tools; publish_* gone, orchestrate_*/legacy
+  stdio  (default)            → 29 tools: 23 hosted + 6 publish (stdio-only plane)
+  hosted (VAAS_HOSTED=1)      → 23 tools; publish_* gone, orchestrate_*/legacy
                                 aliases gone, and a publish_video tool call is
                                 rejected (Unknown tool — nothing executes).
 """
@@ -27,13 +27,17 @@ ROOT = Path(__file__).parent.parent
 # ─── Canonical surface (mirrors main.py CANONICAL_TOOLS) ───────────────────
 
 HOSTED_TOOLS = [
-    "generate_voice", "generate_image", "generate_video_submit",
+    "generate_voice", "generate_image", "edit_image", "generate_video_submit",
     "video_job_status", "models_voices", "voiceover_assemble",
     "reference_clips_check",
     "render_video", "render_still", "render_document",
     "templates_list", "templates_get",
     "assets_list", "assets_get", "assets_stats",
     "registry_list_generators", "registry_describe_generator",
+    # source lane (strengthen-caas-serious-text): hosted, deterministic, metered
+    "source_search", "source_domains",
+    # citation store + draft gate: hosted, deterministic
+    "citation_record", "citation_list", "citation_gate",
 ]
 PUBLISH_TOOLS = [
     "publish_video", "publish_article", "publish_validate_ready",
@@ -95,26 +99,26 @@ def _probe(hosted: bool, call_publish: bool) -> dict:
 
 
 class TestStdioSurface:
-    """Default mode: full 23-tool surface, publish plane included."""
+    """Default mode: full 29-tool surface, publish plane included."""
 
-    def test_stdio_surface_is_23_exact(self):
+    def test_stdio_surface_is_29_exact(self):
         names = _probe(hosted=False, call_publish=False)["names"]
         assert sorted(names) == sorted(STDIO_TOOLS), names
-        assert len(names) == 23
+        assert len(names) == 29
         for gone in RETIRED_TOOLS:
             assert gone not in names, f"retired tool still registered: {gone}"
 
 
 class TestHostedSurface:
-    """VAAS_HOSTED=1 / VAAS_TRANSPORT=http: 17 hosted tools, publish plane gone."""
+    """VAAS_HOSTED=1 / VAAS_TRANSPORT=http: 23 hosted tools, publish plane gone."""
 
     @pytest.fixture(scope="class")
     def hosted_names(self):
         return _probe(hosted=True, call_publish=False)["names"]
 
-    def test_hosted_surface_is_17_exact(self, hosted_names):
+    def test_hosted_surface_is_23_exact(self, hosted_names):
         assert sorted(hosted_names) == sorted(HOSTED_TOOLS), hosted_names
-        assert len(hosted_names) == 17
+        assert len(hosted_names) == 23
 
     def test_publish_plane_not_registered(self, hosted_names):
         leaked = [n for n in hosted_names if n.startswith("publish")]

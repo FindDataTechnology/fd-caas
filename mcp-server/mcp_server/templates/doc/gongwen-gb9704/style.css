@@ -1,0 +1,14 @@
+/* 公文版式（GB/T 9704 取向）：仿宋三号正文、固定行距、首行缩进两字、
+   标题黑体、页码居中。仅覆盖可判定项，不做全量排版合规。 */
+[data-doc] { font-size: 16pt; line-height: 28pt; }
+[data-doc] p { text-indent: 2em; margin: 0; line-height: 28pt; }
+[data-doc] h1 { font-family: 'SimHei','黑体','Noto Sans CJK SC',sans-serif;
+                font-size: 22pt; text-align: center; margin: 0 0 28pt; }
+[data-doc] h2 { font-family: 'SimHei','黑体','Noto Sans CJK SC',sans-serif;
+                font-size: 16pt; margin: 14pt 0; }
+[data-doc] .references { margin-top: 28pt; border-top: 1px solid #000; padding-top: 8pt; }
+[data-doc] .references h2 { font-size: 14pt; }
+[data-doc] .references ol { padding-left: 2em; }
+[data-doc] .references li { font-size: 12pt; line-height: 20pt; text-indent: 0; }
+[data-doc] sup.cite-ref { font-size: 0.7em; vertical-align: super; }
+@page { @bottom-center { content: counter(page); } }

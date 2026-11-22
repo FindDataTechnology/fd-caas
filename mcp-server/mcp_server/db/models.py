@@ -561,3 +561,77 @@ def usage_summary(
         f"ORDER BY owner, tool", params)]
     conn.close()
     return rows
+
+
+# ─── Serious-text citations (openspec: strengthen-caas-serious-text) ────────
+
+CITATION_STATUSES = ("resolvable", "authentic", "supported", "pending", "blocked")
+
+
+def insert_citation(
+    asset_id: str,
+    source: str,
+    stable_id: str,
+    as_of: str,
+    owner: str = SERVICE_OWNER,
+    status: str = "resolvable",
+    ref_meta: Optional[dict] = None,
+    id: Optional[str] = None,
+) -> str:
+    """Record one citation bound to an asset (provenance triple + status)."""
+    if status not in CITATION_STATUSES:
+        raise ValueError(f"unknown citation status: {status}. Available: {CITATION_STATUSES}")
+    cite_id = id or generate_id()
+    conn = get_connection()
+    conn.execute(
+        "INSERT INTO citations (id, asset_id, owner, source, stable_id, as_of, status, ref_meta) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        (cite_id, asset_id, owner, source, stable_id, as_of, status,
+         json.dumps(ref_meta) if ref_meta else None),
+    )
+    conn.commit()
+    conn.close()
+    return cite_id
+
+
+def get_citation(cite_id: str, owner: Optional[str] = None) -> Optional[dict]:
+    """Fetch a citation by id; tenant callers only see their own rows."""
+    conn = get_connection()
+    row = conn.execute("SELECT * FROM citations WHERE id = ?", (cite_id,)).fetchone()
+    conn.close()
+    if not row:
+        return None
+    cite = dict(row)
+    if cite.get("ref_meta"):
+        cite["ref_meta"] = json.loads(cite["ref_meta"])
+    if owner is not None and (cite.get("owner") or SERVICE_OWNER) != owner:
+        return None
+    return cite
+
+
+def list_citations(asset_id: str, owner: Optional[str] = None) -> list[dict]:
+    """List an asset's citations in creation order."""
+    conn = get_connection()
+    rows = conn.execute(
+        "SELECT * FROM citations WHERE asset_id = ? ORDER BY created_at", (asset_id,)
+    ).fetchall()
+    conn.close()
+    out = []
+    for r in rows:
+        d = dict(r)
+        if d.get("ref_meta"):
+            d["ref_meta"] = json.loads(d["ref_meta"])
+        if owner is not None and (d.get("owner") or SERVICE_OWNER) != owner:
+            continue
+        out.append(d)
+    return out
+
+
+def update_citation_status(cite_id: str, status: str) -> None:
+    """Set a citation's verification status (caller has already resolved owner)."""
+    if status not in CITATION_STATUSES:
+        raise ValueError(f"unknown citation status: {status}. Available: {CITATION_STATUSES}")
+    conn = get_connection()
+    conn.execute("UPDATE citations SET status = ? WHERE id = ?", (status, cite_id))
+    conn.commit()
+    conn.close()

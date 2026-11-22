@@ -30,6 +30,11 @@ from .models import (
     expire_stale_jobs,
     record_usage,
     usage_summary,
+    CITATION_STATUSES,
+    insert_citation,
+    get_citation,
+    list_citations,
+    update_citation_status,
 )
 
 __all__ = [
@@ -65,4 +70,9 @@ __all__ = [
     "expire_stale_jobs",
     "record_usage",
     "usage_summary",
+    "CITATION_STATUSES",
+    "insert_citation",
+    "get_citation",
+    "list_citations",
+    "update_citation_status",
 ]

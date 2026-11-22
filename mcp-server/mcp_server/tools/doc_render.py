@@ -177,6 +177,99 @@ def _wrap_document_html(body_html: str, template: dict,
             + "\n</article></body></html>\n")
 
 
+# ─── Serious-text citations: [[cite:<id>]] → numbered references ─────────────
+
+# Format id → (label, reference formatter). The formatter takes a citation's
+# ref_meta and returns one bibliography line (no leading number).
+_REF_FORMATTERS = {}
+
+
+def _register_ref_formatters():
+    """Populate reference formatters once (GB/T 7714 & APA, journal-first)."""
+    if _REF_FORMATTERS:
+        return
+
+    def _authors(meta: dict, apa: bool) -> str:
+        names = meta.get("authors") or meta.get("author") or []
+        if isinstance(names, str):
+            names = [names]
+        # A name like "He, K." already carries its own trailing period; strip
+        # it here so the formatter's own separator doesn't produce "..".
+        clean = [n.rstrip(".").strip() for n in names if n and n.strip()]
+        if apa:  # Last, F. M.
+            return ", ".join(clean[:7]) or "佚名"
+        return ", ".join(clean[:3]) or "佚名"  # GB/T: first 3 then 等
+
+    def _gbt(meta: dict) -> str:
+        title = meta.get("title") or "（无题）"
+        year = meta.get("year") or "n.d."
+        venue = meta.get("venue") or ""
+        doi = meta.get("doi") or ""
+        head = f"{_authors(meta, False)}. {title}[J]"
+        parts = [head]
+        if venue:
+            parts.append(venue)
+        parts.append(str(year))
+        line = ". ".join(parts)
+        if doi:
+            line += f". DOI: {doi}"
+        return line if line.endswith(".") else line + "."
+
+    def _apa(meta: dict) -> str:
+        title = meta.get("title") or "(untitled)"
+        year = meta.get("year") or "n.d."
+        venue = meta.get("venue") or ""
+        doi = meta.get("doi") or ""
+        line = f"{_authors(meta, True)}. ({year}). {title}."
+        if venue:
+            line += f" {venue}."
+        if doi:
+            line += f" https://doi.org/{doi}"
+        return line
+
+    _REF_FORMATTERS.update({"gbt7714": ("GB/T 7714", _gbt),
+                            "apa": ("APA", _apa),
+                            "gbt": ("GB/T 7714", _gbt)})
+
+
+def _render_citations(body_html: str, citations: list, cite_format: str) -> tuple:
+    """Replace [[cite:<id>]] anchors with numbered refs + append a bibliography.
+
+    citations: list of {id, ref_meta}. Anchors whose id is unknown are stripped
+    (解不出即截断 — never render a number with no source). Returns
+    (new_body_html, bibliography_html, rendered_ids_in_order).
+    """
+    _register_ref_formatters()
+    fmt = _REF_FORMATTERS.get(cite_format)
+    if not fmt:
+        raise ValueError(f"unknown cite format: {cite_format}. "
+                         f"Available: {sorted(set(k for k in _REF_FORMATTERS))}")
+    _, formatter = fmt
+    by_id = {c.get("id"): c for c in citations if c.get("id")}
+    order: list[str] = []
+
+    def _sub(m):
+        cid = m.group(1).strip()
+        cite = by_id.get(cid)
+        # 解不出的锚点，或被核验判为 blocked 的引用，都不渲染出处（宁删勿假）。
+        if cite is None or cite.get("status") == "blocked":
+            return ""
+        if cid not in order:
+            order.append(cid)
+        return f'<sup class="cite-ref">[{order.index(cid) + 1}]</sup>'
+
+    new_body = re.sub(r"\[\[cite:([^\]]+)\]\]", _sub, body_html)
+    if not order:
+        return new_body, "", order
+    items = []
+    for i, cid in enumerate(order, 1):
+        meta = by_id[cid].get("ref_meta") or {}
+        items.append(f'<li id="ref-{cid}">{formatter(meta)}</li>')
+    bib = ('<section class="references" data-references>'
+           '<h2>参考文献</h2><ol>' + "".join(items) + "</ol></section>")
+    return new_body, bib, order
+
+
 # ─── W3.2: chromium 双格式产出 ──────────────────────────────────────────────
 
 def _print_pdf(html: str, template: dict, out_path: Path) -> None:
@@ -260,11 +353,15 @@ def _normalize_formats(format) -> tuple:
 
 
 def render_document(source: str, format, template: Optional[str] = None,
-                    slug: Optional[str] = None) -> dict:
+                    slug: Optional[str] = None,
+                    citations: Optional[list] = None,
+                    cite_format: Optional[str] = None) -> dict:
     """Render md/html source into pdf / longimage document(s) (chromium print).
 
     source: markdown/html 文本或本地文件路径；format: "pdf" | "longimage" |
     两者列表（每份产物独立落账）。template 未指定用 "default"。
+    citations + cite_format（serious-text）：源中的 [[cite:<id>]] 按所选格式渲成
+    编号参考文献并在正文回引；解不出的锚点截除、不渲染无出处的编号。
     返回 {type, template, source_kind, formats, products: [{id, slug,
     file_path, format, ...}]}；单格式时首份产物字段同时上提到顶层。
     """
@@ -278,6 +375,11 @@ def render_document(source: str, format, template: Optional[str] = None,
 
     tpl = _load_template(template_id)  # 未知模板 → 报错列可用清单（W3.3）
     body, source_kind = _read_source(source)
+    rendered_cites: list[str] = []
+    if citations and cite_format:
+        body, bib, rendered_cites = _render_citations(body, citations, cite_format)
+        if bib:
+            body = body + "\n" + bib
     # W6.1c：html source 与 graphic caller HTML 同一硬校验（外链拒绝、逐条
     # 点名）；markdown 来源是纯文本面不做硬拦——外链图片只注释报告（渲染
     # 离线不取数，chromium 侧兜底断网，图片空渲染），普通超链不算

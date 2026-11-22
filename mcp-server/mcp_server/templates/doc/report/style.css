@@ -1,0 +1,12 @@
+/* 通用报告版式：无衬线正文、清晰层级、适度留白；含图表与分节。 */
+[data-doc] { font-size: 11pt; line-height: 1.7; }
+[data-doc] p { margin: 0 0 8pt; }
+[data-doc] h1 { font-size: 20pt; margin: 0 0 16pt; color: #1a1a1a; }
+[data-doc] h2 { font-size: 15pt; margin: 18pt 0 8pt; color: #1a1a1a; }
+[data-doc] h3 { font-size: 12pt; margin: 12pt 0 6pt; }
+[data-doc] table { border-collapse: collapse; width: 100%; margin: 8pt 0; }
+[data-doc] th, [data-doc] td { border: 1px solid #ddd; padding: 6px 8px; font-size: 10pt; }
+[data-doc] .references { margin-top: 20pt; border-top: 1px solid #ccc; padding-top: 8pt; }
+[data-doc] .references ol { padding-left: 2em; }
+[data-doc] .references li { font-size: 9.5pt; line-height: 1.5; }
+[data-doc] sup.cite-ref { font-size: 0.7em; vertical-align: super; }

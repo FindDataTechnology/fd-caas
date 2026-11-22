@@ -212,7 +212,9 @@ class TestTemplateErrors:
         msg = str(ei.value)
         assert "unknown doc template: gongwen" in msg
         listed = [t["id"] for t in templates_list(domain="doc")["templates"]["doc"]]
-        assert listed == ["default"] and listed[0] in msg  # 清单与 templates_list 同源
+        # 清单与 templates_list 同源，且错误消息回显整份清单
+        assert "default" in listed
+        assert all(tid in msg for tid in listed)
 
     def test_default_template_loads_css_and_meta(self):
         tpl = doc_mod._load_template("default")

@@ -42,7 +42,7 @@ from .hosting import (
     current_owner, is_hosted, service_auth_ok, verify_download,
 )
 from .tools.generate import (
-    generate_voice, generate_image, generate_video_submit, video_job_status,
+    generate_voice, generate_image, edit_image, generate_video_submit, video_job_status,
     models_voices, voiceover_assemble, reference_clips_check,
 )
 from .tools.render import render_video, render_still, render_document
@@ -53,6 +53,8 @@ from .tools.publish import (
 )
 from .tools.assets import assets_list, assets_get, assets_stats
 from .tools.registry_tools import registry_list_generators, registry_describe_generator
+from .tools.source import source_search, source_domains
+from .tools.citations import citation_record, citation_list, citation_gate
 
 mcp = FastMCP("VAAS")
 
@@ -64,12 +66,16 @@ HOSTED_EXCLUDED = {
 }
 
 CANONICAL_TOOLS = [
-    generate_voice, generate_image, generate_video_submit, video_job_status,
+    generate_voice, generate_image, edit_image, generate_video_submit, video_job_status,
     models_voices, voiceover_assemble, reference_clips_check,
     render_video, render_still, render_document,
     templates_list, templates_get,
     assets_list, assets_get, assets_stats,
     registry_list_generators, registry_describe_generator,
+    # source lane: hosted, deterministic, metered (strengthen-caas-serious-text)
+    source_search, source_domains,
+    # citation store + draft gate: hosted, deterministic (verification is upstream)
+    citation_record, citation_list, citation_gate,
     # publish plane: stdio-only (hosted surface excludes it, ADR-0004)
     publish_video, publish_article,
     publish_validate_ready, publish_get_config, publish_simulate, publish_record,
@@ -151,11 +157,53 @@ def gc_expired_artifacts(now: float | None = None, ttl_days: int = ARTIFACT_TTL_
     return removed
 
 
+# Tools whose cost is local compute (chromium/ffmpeg on our own machines) —
+# a 0.0 rate is the design there, not a missing number. Everything NOT in this
+# set that bills upstream must carry a real rate; see `_load_pricing`.
+LOCAL_COMPUTE_TOOLS = {
+    "render_video", "render_still", "render_document", "generate_cover",
+    "voiceover_assemble",
+}
+# Deterministic-render sub-units that are free even inside a cloud-priced tool
+# (e.g. render_video's own `render` unit alongside any paid `second` unit).
+LOCAL_COMPUTE_UNITS = {"render"}
+# Video lanes are priced by the sibling change (expose-video-generation-lanes).
+# Named here so the exemption is visible and dated instead of invisible.
+DEFERRED_ZERO_PRICE_TOOLS = {"generate_video_submit", "generate_video"}
+
+
+def _zero_priced_lanes(pricing: dict) -> list[str]:
+    """Cloud-lane entries still sitting at 0.0 — each one is a free-money bug.
+
+    A lane that bills upstream, recorded at 0.0, means every call is delivered
+    at our cost and collected as zero. That never announces itself: the usage
+    rollup just reports an amount of 0 for real traffic. So it is a boot
+    condition, not a warning.
+
+    Exemptions are explicit and narrow: local-compute tools (0.0 by design),
+    the `render` sub-unit, and the tools listed in DEFERRED_ZERO_PRICE_TOOLS
+    (whose pricing lands in another change). Anything else at 0.0 fails.
+    """
+    priced = {k: v for k, v in pricing.items() if not k.startswith("_")}
+    offenders: list[str] = []
+    for tool, units in priced.items():
+        if tool in LOCAL_COMPUTE_TOOLS or tool in DEFERRED_ZERO_PRICE_TOOLS:
+            continue
+        if not isinstance(units, dict):
+            continue
+        paid = {u: r for u, r in units.items() if u not in LOCAL_COMPUTE_UNITS}
+        if paid and all(float(r or 0) == 0.0 for r in paid.values()):
+            offenders.append(tool)
+    return sorted(offenders)
+
+
 def _load_pricing(strict: bool) -> dict:
     """Hosted pricing load refuses silent zero-rated metering.
 
     strict=True (hosted startup): a missing/empty/unreadable table is a
     config error, not a 0.0 default — usage totals would lie forever.
+    A cloud-billed lane still recorded at 0.0 is refused for the same reason
+    (see `_zero_priced_lanes`).
     strict=False (local stdio): {} is fine; local rows are informational.
     """
     pricing_path = os.getenv("VAAS_PRICING_FILE", "pricing.json")
@@ -176,6 +224,15 @@ def _load_pricing(strict: bool) -> dict:
                 f"pricing table {pricing_path} is empty — fill real rates or unset hosted mode"
             )
         return {}
+    if strict:
+        offenders = _zero_priced_lanes(doc)
+        if offenders:
+            raise RuntimeError(
+                f"pricing table {pricing_path} rates these cloud lanes at 0.0: "
+                f"{offenders} — every call would be delivered at our cost and "
+                f"collected as zero. Fill real rates (or add the tool to "
+                f"DEFERRED_ZERO_PRICE_TOOLS with the change that owns its pricing)."
+            )
     return doc
 
 

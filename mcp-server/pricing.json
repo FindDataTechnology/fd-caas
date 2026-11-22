@@ -1,7 +1,8 @@
 {
-  "_comment": "VAAS 生产计价表（fix-hosted-generation-correctness W3.1）。口径：audio 按 manifest price_note 实价（腾讯云 TTS ¥0.3/万字符 = ¥0.00003/字符）；image/video 车道现网 down（DEBT-LANE-9-01），实价待上游修复后按牌价核对——保持 0.0 并在车道修复时更新。render 面为本地算力，0.0 属设计。hosted 启动对此文件严格校验：缺失/为空 = 拒启，不再静默全零折算。",
+  "_comment": "VAAS 生产计价表（fix-hosted-generation-correctness W3.1）。口径说明：audio 按 manifest price_note 实价（腾讯云 TTS ¥0.3/万字符 = ¥0.00003/字符）；render 面为本地算力，0.0 属设计。**图像/编辑**：2026-11-21 起不再留 0.0 —— 上游实测成本取自 sub2api `usage_logs`（`grok-imagine-image` 单张 $0.02，inventory 见 lane_health.json image.grok 的实调销账行；同源的 gemini-3-pro-image 牌价 $0.134 见 sub2api 的 model_prices_and_context_window.json）。本表币种为 CNY，故按 7.2 CNY/USD 折算：$0.02 ≈ ¥0.144/张。**这是成本基线、未含毛利**；对客户报价前必须按商务政策改写此值（改动只需改本文件并重启 hosted 实例）。generate_video_submit 仍为 0.0：视频车道本轮不接（见 change expose-video-generation-lanes，其定价在那边单独落地）。hosted 启动对零价做严格校验：云车道单价为 0 = 拒启，本地算力车道（见 main.py 的 LOCAL_COMPUTE_TOOLS）除外。",
   "currency": "CNY",
-  "generate_image": {"image": 0.0},
+  "generate_image": {"image": 0.144},
+  "edit_image": {"image": 0.144},
   "generate_voice": {"char": 0.00003},
   "voiceover_assemble": {"second": 0.0, "render": 0.0},
   "generate_video_submit": {"second": 0.0},

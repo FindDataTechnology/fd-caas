@@ -23,7 +23,7 @@ dev = [
 ]
 
 [tool.setuptools.package-data]
-mcp_server = ["registry.json", "generators/voices_manifest.json",
+mcp_server = ["registry.json", "sources.json", "generators/voices_manifest.json",
     "templates/doc/*/template.json", "templates/doc/*/style.css",
     "templates/echarts/echarts.min.js", "templates/echarts/echarts-theme.json",
     "templates/bgm/*.mp3", "templates/bgm/licenses.json"]

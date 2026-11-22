@@ -29,6 +29,7 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
+from pathlib import Path
 
 # url-form产物 downloads: envelope (see design D2). Both knobs are env-overridable
 # so an operator can widen them without a code change.
@@ -142,6 +143,213 @@ def _download_image(url: str, dest: str) -> tuple[int, str]:
         f.write(raw)
     return len(raw), fmt or ""
 
+
+# 上游编辑端点的源图上限（sub2api `grokMediaMaxEditSourceImages = 3`）。
+MAX_EDIT_SOURCE_IMAGES = 3
+
+
+def _as_image_url(source: str) -> str:
+    """Turn a source spec into an `image_url` string the upstream accepts.
+
+    Accepts an http(s) URL as-is; otherwise treats it as a local file path and
+    inlines it as a data URI. Fails closed: an unreadable or non-image file must
+    never reach the request body (that would be a paid call with a broken source).
+    """
+    if source.startswith(("http://", "https://")):
+        return source
+    if source.startswith("data:"):
+        return source
+    raw = Path(source).expanduser().read_bytes() if Path(source).expanduser().is_file() else b""
+    if not raw:
+        raise RuntimeError(f"ciyuan image edit: source image not found or empty: {source}")
+    fmt = _detect_format(raw)
+    if fmt is None:
+        raise RuntimeError(
+            "ciyuan image edit: source is not a known image format "
+            f"(first bytes: {raw[:12].hex()}) — refusing to submit"
+        )
+    mime = "image/jpeg" if fmt == "jpeg" else f"image/{fmt}"
+    return f"data:{mime};base64," + base64.b64encode(raw).decode("ascii")
+
+
+def _edit_once(
+    *,
+    source: str,
+    instruction: str,
+    model: str,
+    api_key: str,
+    base_url: str,
+    output_path: str,
+    mask: str | None = None,
+    references: list | None = None,
+) -> dict:
+    """Edit one image with a natural-language instruction (POST /v1/images/edits).
+
+    Result shape mirrors `generate()`; additionally carries `source_instruction`
+    and `echo_check` so the caller can audit what was actually asked for.
+
+    判据（design D3）：产物字节必须与源图不同。相同 = 上游没编辑、把原图回显了，
+    按失败处理。该判据判得了「原图回显」，判不了「几乎没改」——
+    极保守的指令返回近似图是合法的，不在这里拦。
+    """
+    if not api_key:
+        raise ValueError("CIYUAN_API_KEY is required for ciyuan image edit")
+    if not base_url:
+        raise ValueError("CIYUAN_BASE_URL is required for ciyuan image edit")
+    if not instruction or not instruction.strip():
+        raise ValueError("ciyuan image edit: instruction is required")
+
+    sources = [source, *(references or [])]
+    if len(sources) > MAX_EDIT_SOURCE_IMAGES:
+        raise ValueError(
+            f"ciyuan image edit: {len(sources)} source images "
+            f"(source + references) exceed the upstream limit of "
+            f"{MAX_EDIT_SOURCE_IMAGES} — refusing rather than truncating"
+        )
+
+    # 源图字节留一份，用于产物对比（只比第一张，即被编辑的那张）
+    source_first = sources[0]
+    source_bytes = None
+    if not source_first.startswith(("http://", "https://", "data:")):
+        p = Path(source_first).expanduser()
+        if p.is_file():
+            source_bytes = p.read_bytes()
+
+    start = time.time()
+    payload: dict = {
+        "model": model,
+        "prompt": instruction.strip(),
+        "images": [{"image_url": _as_image_url(s)} for s in sources],
+    }
+    if mask:
+        payload["mask"] = {"image_url": _as_image_url(mask)}
+
+    req = urllib.request.Request(
+        base_url.rstrip("/") + "/v1/images/edits",
+        data=json.dumps(payload).encode("utf-8"),
+        method="POST",
+        headers={
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+        },
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=300) as resp:
+            body = resp.read()
+            content_type = resp.headers.get("Content-Type", "")
+    except urllib.error.HTTPError as e:
+        err_body = e.read().decode("utf-8", "replace")[:500]
+        raise RuntimeError(f"ciyuan image edit failed (HTTP {e.code}): {err_body}") from e
+
+    if "json" not in content_type.lower():
+        raise RuntimeError(
+            f"ciyuan image edit model '{model}' returned non-JSON response "
+            f"(Content-Type: {content_type}) — 应答形状不合规"
+        )
+    try:
+        doc = json.loads(body.decode("utf-8"))
+    except (json.JSONDecodeError, UnicodeDecodeError) as e:
+        raise RuntimeError(f"ciyuan image edit response is not valid JSON: {e}") from e
+
+    items = doc.get("data") or []
+    if not items:
+        raise RuntimeError(f"ciyuan image edit returned no data items: {json.dumps(doc)[:300]}")
+
+    item = items[0]
+    raw = None
+    if item.get("b64_json"):
+        raw = base64.b64decode(item["b64_json"])
+        fmt = _detect_format(raw)
+        if fmt is None:
+            raise RuntimeError(
+                "ciyuan image edit b64 payload is not a known image format "
+                f"(first bytes: {raw[:12].hex()}) — 不写盘"
+            )
+    elif item.get("url"):
+        written, fmt = _download_image(str(item["url"]), output_path)
+        raw = Path(output_path).read_bytes()
+    else:
+        raise RuntimeError(
+            "ciyuan image edit item has neither b64_json nor url (keys: "
+            f"{sorted(item.keys())}) — 产物形态不合规"
+        )
+
+    if source_bytes is not None and raw == source_bytes:
+        raise RuntimeError(
+            "ciyuan image edit returned bytes identical to the source image "
+            "(echoed_source) — the upstream did not edit; treating as failure"
+        )
+
+    if not Path(output_path).exists():
+        with open(output_path, "wb") as f:
+            f.write(raw)
+
+    return {
+        "ok": True,
+        "provider": "ciyuan",
+        "model": model,
+        "source_instruction": instruction.strip(),
+        "source_count": len(sources),
+        "has_mask": bool(mask),
+        "echo_check": "different" if source_bytes is not None else "not_compared",
+        "images": [{"local_path": output_path, "file_size_bytes": len(raw), "format": fmt}],
+        "usage": doc.get("usage"),
+        "api_latency_ms": round((time.time() - start) * 1000),
+    }
+
+
+
+def edit(
+    *,
+    source: str,
+    instruction: str,
+    model: str,
+    api_key: str,
+    base_url: str,
+    output_path: str,
+    mask: str | None = None,
+    references: list | None = None,
+    n: int = 1,
+) -> dict:
+    """Edit one image n times (the upstream edit endpoint is single-image).
+
+    `n > 1` is satisfied by **n separate upstream calls**, not by an upstream
+    multi-image response — nobody has proven the edit endpoint honours `n`, and
+    faking multi-image support would be a lie the caller cannot see. The result
+    carries a warning saying so.
+
+    Output paths for n>1: `<stem>_00<ext>`, `<stem>_01<ext>`, … (index 0 keeps
+    the caller's exact path so the single-image case is unchanged).
+    """
+    if n < 1:
+        raise ValueError("ciyuan image edit: n must be >= 1")
+    if n == 1:
+        return _edit_once(
+            source=source, instruction=instruction, model=model,
+            api_key=api_key, base_url=base_url, output_path=output_path,
+            mask=mask, references=references,
+        )
+
+    base = Path(output_path)
+    images: list[dict] = []
+    warnings: list[str] = [
+        f"the upstream edit endpoint is single-image: {n} images were produced "
+        f"by {n} separate calls, not by one multi-image response"
+    ]
+    merged: dict = {}
+    for i in range(n):
+        dest = base.with_name(f"{base.stem}_{i:02d}{base.suffix}")
+        res = _edit_once(
+            source=source, instruction=instruction, model=model,
+            api_key=api_key, base_url=base_url, output_path=str(dest),
+            mask=mask, references=references,
+        )
+        images.extend(res.get("images") or [])
+        merged = merged or {k: v for k, v in res.items() if k != "images"}
+    merged["images"] = images
+    merged["warnings"] = warnings
+    return merged
 
 def generate(
     *,

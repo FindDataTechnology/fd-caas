@@ -1,0 +1,11 @@
+/* 学术版式（GB/T 7714 取向）：宋体正文、五号、分节标题黑体、参考文献表。 */
+[data-doc] { font-size: 12pt; line-height: 1.75; }
+[data-doc] p { text-indent: 2em; margin: 0 0 6pt; }
+[data-doc] h1 { font-size: 18pt; text-align: center; margin: 0 0 16pt; }
+[data-doc] h2 { font-family: 'SimHei','黑体','Noto Sans CJK SC',sans-serif;
+                font-size: 14pt; margin: 16pt 0 8pt; }
+[data-doc] .references { margin-top: 20pt; }
+[data-doc] .references h2 { font-size: 13pt; }
+[data-doc] .references ol { padding-left: 2em; }
+[data-doc] .references li { font-size: 10.5pt; line-height: 1.5; text-indent: 0; }
+[data-doc] sup.cite-ref { font-size: 0.7em; vertical-align: super; }

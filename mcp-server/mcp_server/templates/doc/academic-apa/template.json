@@ -1,0 +1,10 @@
+{
+  "id": "academic-apa",
+  "name": "学术论文（APA 7 引用格式）",
+  "description": "学术文本版式：A4、标准页边距、宋体正文；引用按 APA 7 渲染为参考文献表，正文上标回引。",
+  "status": "active",
+  "formats": ["pdf"],
+  "page": { "size": "A4", "margin": "25mm" },
+  "content_width": 1080,
+  "fonts": "'Songti SC','宋体','Noto Serif CJK SC',serif"
+}

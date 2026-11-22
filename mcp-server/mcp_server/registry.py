@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Callable, Optional
 
 from .generators.tts import synthesize as _driver_voice
-from .generators.image import generate as _driver_image
+from .generators.image import generate as _driver_image, edit as _driver_image_edit
 from .generators.video import generate as _driver_video
 from .skills.cover import create_cover as _driver_cover
 from .tools.still_chart import render_chart as _driver_chart
@@ -23,6 +23,7 @@ from .tools.doc_render import render_document as _driver_doc
 DRIVERS: dict[str, Callable] = {
     "generate_voice": _driver_voice,
     "generate_image": _driver_image,
+    "edit_image": _driver_image_edit,
     "generate_video": _driver_video,
     "create_cover": _driver_cover,
     # Wave1 占位驱动：函数存在、内核后续波次实现（当前 raise NotImplementedError）

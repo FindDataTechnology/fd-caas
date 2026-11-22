@@ -235,6 +235,28 @@ def init_schema(db_path: Optional[Path] = None) -> None:
     """)
     conn.execute("CREATE INDEX IF NOT EXISTS idx_usage_owner ON generation_usage(owner, created_at)")
 
+    # ─── Serious-text citations (openspec: strengthen-caas-serious-text) ──
+    # A citation is a material-store object bound to an asset, carrying the
+    # unified provenance triple (source/stable_id/as_of, text-query-surface)
+    # plus a verification status. Owner-scoped like every other asset row.
+    # `ref_meta` holds the source hit's payload (title/url/etc.); `status` is
+    # one of resolvable|authentic|supported|pending|blocked.
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS citations (
+            id TEXT PRIMARY KEY,
+            asset_id TEXT REFERENCES assets(id) ON DELETE CASCADE,
+            owner TEXT NOT NULL,
+            source TEXT NOT NULL,
+            stable_id TEXT NOT NULL,
+            as_of TEXT NOT NULL,
+            status TEXT NOT NULL DEFAULT 'resolvable',
+            ref_meta JSON,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_citations_asset ON citations(asset_id)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_citations_owner ON citations(owner, created_at)")
+
     conn.commit()
     conn.close()
 

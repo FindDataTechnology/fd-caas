@@ -1,0 +1,10 @@
+{
+  "id": "report",
+  "name": "通用报告",
+  "description": "研报/尽调备忘录版式：A4、宽页边距、无衬线正文、清晰层级；适合含图表与分节的报告体。引用按所选格式渲染。",
+  "status": "active",
+  "formats": ["pdf", "longimage"],
+  "page": { "size": "A4", "margin": "20mm" },
+  "content_width": 1080,
+  "fonts": "'PingFang SC','Noto Sans CJK SC','Microsoft YaHei',sans-serif"
+}

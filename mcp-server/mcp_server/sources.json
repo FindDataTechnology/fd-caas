@@ -1,0 +1,32 @@
+{
+  "papers": {
+    "service": "fd-text-core",
+    "search_tool": "papers_federated",
+    "read_tool": "papers_read",
+    "driver": "source_mcp"
+  },
+  "gov": {
+    "service": "fd-text-core",
+    "search_tool": "gov_federated",
+    "read_tool": "gov_read",
+    "driver": "source_mcp"
+  },
+  "news": {
+    "service": "fd-text-core",
+    "search_tool": "news_federated",
+    "read_tool": "news_read",
+    "driver": "source_mcp"
+  },
+  "legal": {
+    "service": "fd-legal-search-mcp",
+    "search_tool": "law_search",
+    "read_tool": "law_read",
+    "driver": "source_mcp"
+  },
+  "philosophy": {
+    "service": "fd-zhesi-reference",
+    "search_tool": "philpapers_paper_search",
+    "read_tool": null,
+    "driver": "source_mcp"
+  }
+}

@@ -91,6 +91,48 @@ def generate_image(
     })
 
 
+def edit_image(
+    source: str,
+    instruction: str,
+    mask: Optional[str] = None,
+    references: Optional[list] = None,
+    n: int = 1,
+    slug: Optional[str] = None,
+    name: str = "edit-grok",
+) -> dict:
+    """Edit an existing image with a natural-language instruction.
+
+    This is the *refine* path, not a reroll: you hand it a source image and say
+    what to change, and the same picture comes back modified. For "give me a
+    different picture", use generate_image instead — the two are separate
+    registered methods because they hit different upstream endpoints, bill
+    differently, and a returned-unchanged image is a failure here.
+
+    Args:
+        source: The image to edit — a local path, an http(s) URL, or a VAAS
+            asset id. Local sources are inlined as data URIs by the bridge.
+        instruction: What to change. Make it judgeable ("change the background
+            to solid blue"): an edit that cannot be told apart from the source
+            is rejected as echoed_source rather than accepted as success.
+        mask: Optional region mask. Treat as a hint — upstream mask support is
+            unverified, so the edit may apply to the whole image. The response
+            carries a warning saying so.
+        references: Optional supplementary reference images (same accepted
+            forms as source). source + references must not exceed 3.
+        n: How many edited variants to produce. The upstream edit endpoint is
+            single-image, so n>1 means n separate calls (disclosed in warnings),
+            not one multi-image response — do not assume they are cheaper.
+        slug: Custom slug (auto-derived from the instruction otherwise).
+        name: Registered edit method (edit-grok / edit-ciyuan).
+
+    Returns id/slug/file_paths plus source_asset_id (lineage) and warnings.
+    """
+    return dispatch("image", name, {
+        "source": source, "instruction": instruction, "mask": mask,
+        "references": references, "n": n, "slug": slug, "name": name,
+    })
+
+
 def generate_cover(
     title: str,
     subtitle: Optional[str] = None,

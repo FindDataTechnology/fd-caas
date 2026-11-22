@@ -1,0 +1,13 @@
+{
+  "id": "gongwen-gb9704",
+  "name": "公文（GB/T 9704-2012 版式）",
+  "description": "党政机关公文通用版式：A4、版心 156mm×225mm、仿宋三号正文、固定行距。定位严肃公文的版面基线；版心/字号/行距/页码为可判定项。",
+  "status": "active",
+  "formats": ["pdf"],
+  "page": {
+    "size": "A4",
+    "margin": { "top": "37mm", "bottom": "35mm", "left": "28mm", "right": "26mm" }
+  },
+  "content_width": 1080,
+  "fonts": "'FangSong','仿宋','Noto Serif CJK SC','Noto Sans CJK SC',serif"
+}

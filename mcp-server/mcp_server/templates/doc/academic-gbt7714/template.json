@@ -1,0 +1,10 @@
+{
+  "id": "academic-gbt7714",
+  "name": "学术论文（GB/T 7714-2015 引用格式）",
+  "description": "学术文本版式：A4、标准页边距、宋体正文、分节标题；引用按 GB/T 7714-2015 编号制渲染为参考文献表，正文上标回引。",
+  "status": "active",
+  "formats": ["pdf"],
+  "page": { "size": "A4", "margin": "25mm" },
+  "content_width": 1080,
+  "fonts": "'Songti SC','宋体','Noto Serif CJK SC',serif"
+}

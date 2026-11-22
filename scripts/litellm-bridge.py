@@ -185,6 +185,37 @@ def cmd_image(args: argparse.Namespace) -> int:
 
     start = time.time()
 
+    # --source routes to /v1/images/edits. Kept as a separate branch from
+    # generation on purpose: the two endpoints differ in payload shape, in
+    # billing, and in what a "success" means (an edit that echoes the source
+    # is a failure). Only the openai-compatible relays implement it.
+    if args.source:
+        if provider not in ("ciyuan", "grok"):
+            print(f"Error: provider '{provider}' has no image-edit lane "
+                  "(supported: ciyuan, grok)", file=sys.stderr)
+            return 2
+        from _ciyuan_image import edit as ciyuan_edit  # type: ignore
+
+        try:
+            result = ciyuan_edit(
+                source=args.source,
+                instruction=args.prompt,
+                model=model,
+                api_key=args.api_key or env_get("GROK_API_KEY") or env_get("CIYUAN_API_KEY") or "",
+                base_url=args.base_url or env_get("GROK_BASE_URL") or env_get("CIYUAN_BASE_URL") or "",
+                output_path=str(out_path),
+                mask=args.mask,
+                references=args.reference or [],
+                n=args.n or 1,
+            )
+        except Exception as exc:  # noqa: BLE001 — surfaced verbatim to the driver's classifier
+            print(f"Error: {exc}", file=sys.stderr)
+            return 3
+        result["provider"] = provider
+        result["api_latency_ms"] = round((time.time() - start) * 1000)
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+
     if provider == "volcengine":
         # ponytail: volcengine direct — Agent Plan image API supports
         # reference images, web search, and model routing that litellm
@@ -525,6 +556,12 @@ def build_parser() -> argparse.ArgumentParser:
     i.add_argument("--output-format", help="Output format: png/jpeg")
     i.add_argument("-n", type=int, help="Number of images to generate")
     i.add_argument("--output", required=True, help="Output image file path")
+    i.add_argument("--source", help="Source image (path, URL, or data URI). Given => POST /v1/images/edits "
+                                    "instead of /v1/images/generations; --prompt becomes the edit instruction")
+    i.add_argument("--mask", help="Optional mask image for the edit (same accepted forms as --source)")
+    i.add_argument("--reference", action="append",
+                   help="Optional supplementary reference image for the edit (repeatable; "
+                        "source + references must not exceed the upstream limit of 3)")
     i.add_argument("--api-key", help="API key override")
     i.add_argument("--base-url", help="API base URL override")
     i.set_defaults(func=cmd_image)

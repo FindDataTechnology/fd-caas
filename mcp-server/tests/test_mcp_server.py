@@ -124,12 +124,14 @@ class TestToolSurface:
 
         tools = asyncio.run(names())
         canonical = [
-            "generate_voice", "generate_image", "generate_video_submit",
+            "generate_voice", "generate_image", "edit_image", "generate_video_submit",
             "video_job_status", "models_voices", "voiceover_assemble",
             "reference_clips_check", "render_video", "render_still",
             "render_document", "templates_list", "templates_get",
             "assets_list", "assets_get", "assets_stats",
             "registry_list_generators", "registry_describe_generator",
+            "source_search", "source_domains",
+            "citation_record", "citation_list", "citation_gate",
         ]
         for expected in canonical:
             assert expected in tools, f"missing tool {expected}"
@@ -137,7 +139,7 @@ class TestToolSurface:
         for pub in ["publish_video", "publish_article", "publish_validate_ready",
                     "publish_get_config", "publish_simulate", "publish_record"]:
             assert pub in tools, f"missing tool {pub}"
-        assert len(tools) == 23, tools
+        assert len(tools) == 29, tools
         # retired tools + legacy aliases are gone
         for gone in ["orchestrate_brainstorm", "orchestrate_voiceover",
                      "generate_cover", "generate_video",

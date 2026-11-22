@@ -31,6 +31,18 @@
       "provider": "grok",
       "model": "${GROK_IMAGE_MODEL}",
       "driver": "generate_image"
+    },
+    {
+      "name": "edit-grok",
+      "provider": "grok",
+      "model": "${GROK_IMAGE_MODEL}",
+      "driver": "edit_image"
+    },
+    {
+      "name": "edit-ciyuan",
+      "provider": "ciyuan",
+      "model": "${IMAGE_MODEL}",
+      "driver": "edit_image"
     }
   ],
   "video": [
