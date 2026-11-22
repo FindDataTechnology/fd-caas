@@ -117,8 +117,11 @@ fi
 BEARER=$(cat vaas-bearer.txt)
 echo "== start vaas =="
 docker rm -f vaas-wanxing >/dev/null 2>&1 || true
+# 绑 mesh IP 而非回环：网关（facet registry）在 k8s 集群里，要从 100.64.0.x 打进来。
+# 实测过：只绑 127.0.0.1 时集群侧 curl 是 000（conn refused），网关代理永远 502。
+BIND_IP=${PUBLIC#http://}; BIND_IP=${BIND_IP%%:*}
 docker run -d --name vaas-wanxing --restart unless-stopped --network vaas-net \
-  -p 127.0.0.1:30950:30950 \
+  -p "$BIND_IP:30950:30950" \
   -v "$STACK/data":/app/data -v "$STACK/downloads":/app/downloads \
   -v "$STACK/pricing.json":/run-config/pricing.json:ro \
   -e VAAS_HOSTED=1 -e VAAS_LINE=wanxing -e VAAS_PORT=30950 -e VAAS_BIND=0.0.0.0 \

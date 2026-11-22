@@ -76,6 +76,9 @@
         `edit_image` 经 MCP 协议成功 → 血缘 `parent=generate` 的 id；
         签名下载 HTTP 200 / 359,372 B / 真 PNG 1024×1024；`generation_usage` 真记账。
       - 部署固化为 `deploy/provision-hosted.sh`（六条实测坑写进注释），已重放验证幂等。
+      - 网关注册：`/vaas-wanxing/` 已注册且 `enabled=true`，网关路径返回 401（自身鉴权门，
+        非 404）= 路由已解析；集群 pod 直连 `100.64.0.17:30950` 得 200。
+        **前提**：VAAS 必须绑 mesh IP（回环绑定时集群侧 000、网关 502）。
 - [x] 6.3 `docs/debt-ledger.md` 增补一行：编辑车道的承做方漂移风险与复验方式。
       （DEBT-EDIT-01，含复验命令与三种判据的处置方向。）
 
