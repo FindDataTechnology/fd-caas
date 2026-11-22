@@ -66,11 +66,16 @@
 - [x] 6.2 现网真调一次编辑，产物落盘、账本记 `usage_logs` 一行（不是 0 计费）。
       2026-11-22 达成：`e2e_image_edit.py` 五项断言全过（生成→编辑→产物不同→父子血缘→
       两条 usage 记录），`usage_logs` 真计费 $0.02/张（组19 acct57）。
-      **出片也已落地**：`d75f2c8` → origin/main → GHA `image` run `44978544405` success →
-      `hkccr`/`ccr` 双 registry 均见 `yizuo/vaas-mcp-server:sha-7e6323d`（同 digest `6695924d`）。
-      ⚠️ **但没有生产实例**：该镜像目前无任何 k8s Deployment / docker compose 栈 / facet
-      registry 条目引用它（VAAS 只在本地 stdio 跑）。"镜像可拉取" ≠ "已上产"，
-      部署与现网实证是一条尚未存在的线，见 docs/debt-ledger.md DEBT-VAAS-DEPLOY-01。
+      **出片 + 生产实例都已落地**（2026-11-22）：
+      - 镜像：`sha-765d20f` → hkccr + ccr 双落地（digest `62d04b02`）。
+      - 宿主：**cheap9**（100.64.0.17），OpenBAO(raft) + VAAS(hosted) 同 `vaas-net` 网络。
+      - 实证（全程在 cheap9 上跑，不占本机）：
+        `/health` → `{"ok":true,"hosted":true}`；hosted 面 23 工具含 `edit_image`；
+        无凭据调用被拒（`without valid service credential`）、有 bearer 无身份被拒
+        （`without tenant identity`）；`generate_image` → 真产物 + 签名 URL；
+        `edit_image` 经 MCP 协议成功 → 血缘 `parent=generate` 的 id；
+        签名下载 HTTP 200 / 359,372 B / 真 PNG 1024×1024；`generation_usage` 真记账。
+      - 部署固化为 `deploy/provision-hosted.sh`（六条实测坑写进注释），已重放验证幂等。
 - [x] 6.3 `docs/debt-ledger.md` 增补一行：编辑车道的承做方漂移风险与复验方式。
       （DEBT-EDIT-01，含复验命令与三种判据的处置方向。）
 
