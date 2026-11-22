@@ -55,6 +55,12 @@ jobs:
       - name: registry consistency
         run: python .agents/skills/fd-vaas-login/scripts/check-registry-consistency.py
 
+      # MCP 协议面哨兵（offline）：走真 FastMCP tools/list，确认工具注册、
+      # 参数 schema、以及「编辑车道独立于生成车道」这条不变量。
+      # 只跑 --surface（不花钱）：--call 要真 key 与上游可达，属于发布前手工验收。
+      - name: MCP surface gate (offline)
+        run: python scripts/mcp_integration_image_edit.py --surface
+
       - name: Dockerfile single-source drift
         run: cmp -s Dockerfile deploy/mcp-server.Dockerfile
 
