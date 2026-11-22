@@ -34,9 +34,9 @@
       "last_verified": "2026-10-06"
     },
     "image.grok": {
-      "health": "degraded",
-      "reason_class": "upstream_transient",
-      "reason": "**2026-11-22T12:19Z 上游临时故障**：sub2api acct 57 被标记 `grok upstream temporary error`，`/v1/images/generations` 与视频同受影响，直连实测 HTTP 503。这是**外力**（上游站点侧），不是本仓代码或配置问题；台账此前写 active 是因为 11-22 早间实调通过，之后上游抖动。 ⚠️ 这类「判活后上游又坏了」的窗口没有任何机制自动发现——台账只在有人复验时前进。复验：`probe_image_lane.py` / `probe_video_lane.py`，恢复即改回 active。 ｜ 历史：**2026-11-22 复核**：`vaas-media-grok`(id 182, 组19) 打 `/v1/images/generations` HTTP 200、真产物、`usage_logs` 计 $0.02/张（01:58Z 实记）；但**承做方漂移仍在**：请求 `grok-imagine-image`、响应 `model: hunyuan-image-alpha`、日志 `serv",
+      "health": "active",
+      "reason_class": "none",
+      "reason": "**2026-11-22T14:20Z 复验恢复（三条探针全绿）**：上游临时故障（acct 57 `grok upstream temporary error`，12:19Z 起）已自愈。实调证据：`probe_image_lane` generations 200 / 618,855 B / 10.8s；`probe_image_lane --edits` 409,489 B / `echo_check=different` / 13.4s；`probe_video_lane` 首帧对照——带首帧产物首帧 RGB(7,8,242) 距源图 (0,0,255) 极小，无首帧对照 (203,140,138) 差得远，首帧仍被采用。 ｜ 历史：**2026-11-22T12:19Z 上游临时故障**：sub2api acct 57 被标记 `grok upstream temporary error`，`/v1/images/generations` 与视频同受影响，直连实测 HTTP 503。这是**外力**（上游站点侧），不是本仓代码或配置问题；台账此前写 active 是因为 11-22 早",
       "last_verified": "2026-11-22"
     },
     "video.ciyuan": {
@@ -52,9 +52,9 @@
       "last_verified": "2026-10-06"
     },
     "video.grok": {
-      "health": "degraded",
-      "reason_class": "upstream_transient",
-      "reason": "**2026-11-22T12:19Z 上游临时故障**：sub2api acct 57 被标记 `grok upstream temporary error`，`/v1/images/generations` 与视频同受影响，直连实测 HTTP 503。这是**外力**（上游站点侧），不是本仓代码或配置问题；台账此前写 active 是因为 11-22 早间实调通过，之后上游抖动。 ⚠️ 这类「判活后上游又坏了」的窗口没有任何机制自动发现——台账只在有人复验时前进。复验：`probe_image_lane.py` / `probe_video_lane.py`，恢复即改回 active。 ｜ 历史：**2026-11-22 图生视频实调销账（restored）**：`probe_video_lane.py` 跑双盲对照——同一提示词，带 data-URI 首帧 / 不带各生成一次，抽第一帧比平均 RGB。源图纯蓝 (0,0,255)，带首帧产物首帧 (7,8,242)（距源图 16.79），无首帧产物首帧 (208,182,180)（距源图 286.38），两者相距 272.99。差一个数量",
+      "health": "active",
+      "reason_class": "none",
+      "reason": "**2026-11-22T14:20Z 复验恢复（三条探针全绿）**：上游临时故障（acct 57 `grok upstream temporary error`，12:19Z 起）已自愈。实调证据：`probe_image_lane` generations 200 / 618,855 B / 10.8s；`probe_image_lane --edits` 409,489 B / `echo_check=different` / 13.4s；`probe_video_lane` 首帧对照——带首帧产物首帧 RGB(7,8,242) 距源图 (0,0,255) 极小，无首帧对照 (203,140,138) 差得远，首帧仍被采用。 ｜ 历史：**2026-11-22T12:19Z 上游临时故障**：sub2api acct 57 被标记 `grok upstream temporary error`，`/v1/images/generations` 与视频同受影响，直连实测 HTTP 503。这是**外力**（上游站点侧），不是本仓代码或配置问题；台账此前写 active 是因为 11-22 早",
       "last_verified": "2026-11-22",
       "first_frame": {
         "supported": true,
@@ -84,9 +84,9 @@
       "stale_after_days": 7
     },
     "image_edit.grok": {
-      "health": "degraded",
-      "reason_class": "upstream_transient",
-      "reason": "**2026-11-22T12:19Z 上游临时故障**：sub2api acct 57 被标记 `grok upstream temporary error`，`/v1/images/generations` 与视频同受影响，直连实测 HTTP 503。这是**外力**（上游站点侧），不是本仓代码或配置问题；台账此前写 active 是因为 11-22 早间实调通过，之后上游抖动。 ⚠️ 这类「判活后上游又坏了」的窗口没有任何机制自动发现——台账只在有人复验时前进。复验：`probe_image_lane.py` / `probe_video_lane.py`，恢复即改回 active。 ｜ 历史：**2026-11-22 实调销账（`restored`）**：`probe_image_lane.py --edits` 经组 19 `fed-workbuddy-media`（acct 57，key `vaas-media-grok` id 182）打到 `/v1/images/edits`，产物 432,581 B PNG、`file_size_bytes` 与磁盘一致、**与源图字节不同*",
+      "health": "active",
+      "reason_class": "none",
+      "reason": "**2026-11-22T14:20Z 复验恢复（三条探针全绿）**：上游临时故障（acct 57 `grok upstream temporary error`，12:19Z 起）已自愈。实调证据：`probe_image_lane` generations 200 / 618,855 B / 10.8s；`probe_image_lane --edits` 409,489 B / `echo_check=different` / 13.4s；`probe_video_lane` 首帧对照——带首帧产物首帧 RGB(7,8,242) 距源图 (0,0,255) 极小，无首帧对照 (203,140,138) 差得远，首帧仍被采用。 ｜ 历史：**2026-11-22T12:19Z 上游临时故障**：sub2api acct 57 被标记 `grok upstream temporary error`，`/v1/images/generations` 与视频同受影响，直连实测 HTTP 503。这是**外力**（上游站点侧），不是本仓代码或配置问题；台账此前写 active 是因为 11-22 早",
       "last_verified": "2026-11-22",
       "stale_after_days": 7
     }
