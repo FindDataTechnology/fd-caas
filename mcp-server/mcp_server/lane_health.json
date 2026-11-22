@@ -34,9 +34,9 @@
       "last_verified": "2026-10-06"
     },
     "image.grok": {
-      "health": "active",
-      "reason_class": "none",
-      "reason": "**2026-11-22 复核**：`vaas-media-grok`(id 182, 组19) 打 `/v1/images/generations` HTTP 200、真产物、`usage_logs` 计 $0.02/张（01:58Z 实记）；但**承做方漂移仍在**：请求 `grok-imagine-image`、响应 `model: hunyuan-image-alpha`、日志 `serving_model: hunyuan-image-alpha`。同时组 9 的 key（id 77/162）同端点 502 —— acct 40 仍封。另：`deploy/.env` 里的 `CIYUAN_API_KEY` 是 `vaas-tts`(id 76, 组3 core)，该组 `allow_image_generation=false` → 403「Image generation is not enabled for this group」。VAAS 图像必须用 **组19 的 `vaas-media-grok`**，不是那把 TTS 钥。",
+      "health": "degraded",
+      "reason_class": "upstream_transient",
+      "reason": "**2026-11-22T12:19Z 上游临时故障**：sub2api acct 57 被标记 `grok upstream temporary error`，`/v1/images/generations` 与视频同受影响，直连实测 HTTP 503。这是**外力**（上游站点侧），不是本仓代码或配置问题；台账此前写 active 是因为 11-22 早间实调通过，之后上游抖动。 ⚠️ 这类「判活后上游又坏了」的窗口没有任何机制自动发现——台账只在有人复验时前进。复验：`probe_image_lane.py` / `probe_video_lane.py`，恢复即改回 active。 ｜ 历史：**2026-11-22 复核**：`vaas-media-grok`(id 182, 组19) 打 `/v1/images/generations` HTTP 200、真产物、`usage_logs` 计 $0.02/张（01:58Z 实记）；但**承做方漂移仍在**：请求 `grok-imagine-image`、响应 `model: hunyuan-image-alpha`、日志 `serv",
       "last_verified": "2026-11-22"
     },
     "video.ciyuan": {
@@ -52,9 +52,9 @@
       "last_verified": "2026-10-06"
     },
     "video.grok": {
-      "health": "active",
-      "reason_class": "none",
-      "reason": "**2026-11-22 图生视频实调销账（restored）**：`probe_video_lane.py` 跑双盲对照——同一提示词，带 data-URI 首帧 / 不带各生成一次，抽第一帧比平均 RGB。源图纯蓝 (0,0,255)，带首帧产物首帧 (7,8,242)（距源图 16.79），无首帧产物首帧 (208,182,180)（距源图 286.38），两者相距 272.99。差一个数量级 ⇒ **首帧确实被上游采用**，不是边缘判断。形态：`data_uri` 可用（未验 URL 形态与上传通道）。⚠️ 仍存的边界：`last_frame` 在 /v1/videos 形状下被驱动忽略（_grok_video 的既有实现）；视频时长下限 3s、上限 15s；终态词 completed/succeeded/done 都认。 ｜ 历史：**2026-11-15 实调销账**（`/v1/videos` 全链，经 `scripts/_grok_video.py` 真实驱动）：任务 `vid_84655a2f5a1f13ee` → 真 MP4 落盘 3,140,407 B / h264 1280x720 + aac / 3.04s（ffprobe 独立核过）；上游自报承做 `kling-video-v3`、`seconds:3`、`resolution:720P`。两条披露同时真实触发：请求 1s 被夹紧到上游下限 3s、请求 480p 实得 720P",
+      "health": "degraded",
+      "reason_class": "upstream_transient",
+      "reason": "**2026-11-22T12:19Z 上游临时故障**：sub2api acct 57 被标记 `grok upstream temporary error`，`/v1/images/generations` 与视频同受影响，直连实测 HTTP 503。这是**外力**（上游站点侧），不是本仓代码或配置问题；台账此前写 active 是因为 11-22 早间实调通过，之后上游抖动。 ⚠️ 这类「判活后上游又坏了」的窗口没有任何机制自动发现——台账只在有人复验时前进。复验：`probe_image_lane.py` / `probe_video_lane.py`，恢复即改回 active。 ｜ 历史：**2026-11-22 图生视频实调销账（restored）**：`probe_video_lane.py` 跑双盲对照——同一提示词，带 data-URI 首帧 / 不带各生成一次，抽第一帧比平均 RGB。源图纯蓝 (0,0,255)，带首帧产物首帧 (7,8,242)（距源图 16.79），无首帧产物首帧 (208,182,180)（距源图 286.38），两者相距 272.99。差一个数量",
       "last_verified": "2026-11-22",
       "first_frame": {
         "supported": true,
@@ -84,9 +84,9 @@
       "stale_after_days": 7
     },
     "image_edit.grok": {
-      "health": "active",
-      "reason_class": "none",
-      "reason": "**2026-11-22 实调销账（`restored`）**：`probe_image_lane.py --edits` 经组 19 `fed-workbuddy-media`（acct 57，key `vaas-media-grok` id 182）打到 `/v1/images/edits`，产物 432,581 B PNG、`file_size_bytes` 与磁盘一致、**与源图字节不同**、延迟 9.9s。画面核实：指令「把背景改为纯蓝、保留灰方块」被逐项执行（灰方块保留、背景变蓝）。⚠️ 产物右下角带上游水印「AI生成 WORKBUDDY」——编辑产物不是纯净图，下游若要无字图需裁剪或换档。关键契约：**请求模型必须写 `grok-imagine-edit`**（acct 57 的 model_mapping 只认这个名）；写 `hunyuan-image-alpha-edit`（上游 400 提示的名字）会被 sub2api 判 `model_not_supported` → 503。请求体用上游形状：`image`（单数，被编辑那张）+ 可选 `images`（补充参考）+ 可选 `mask`，不是 OpenAI 的 `images[]`——写错了上游回 400「改图要带 image」。",
+      "health": "degraded",
+      "reason_class": "upstream_transient",
+      "reason": "**2026-11-22T12:19Z 上游临时故障**：sub2api acct 57 被标记 `grok upstream temporary error`，`/v1/images/generations` 与视频同受影响，直连实测 HTTP 503。这是**外力**（上游站点侧），不是本仓代码或配置问题；台账此前写 active 是因为 11-22 早间实调通过，之后上游抖动。 ⚠️ 这类「判活后上游又坏了」的窗口没有任何机制自动发现——台账只在有人复验时前进。复验：`probe_image_lane.py` / `probe_video_lane.py`，恢复即改回 active。 ｜ 历史：**2026-11-22 实调销账（`restored`）**：`probe_image_lane.py --edits` 经组 19 `fed-workbuddy-media`（acct 57，key `vaas-media-grok` id 182）打到 `/v1/images/edits`，产物 432,581 B PNG、`file_size_bytes` 与磁盘一致、**与源图字节不同*",
       "last_verified": "2026-11-22",
       "stale_after_days": 7
     }
