@@ -1,0 +1,52 @@
+{
+  "schema": "mcp-tool-surface/v1",
+  "server": "vaas-wanxing",
+  "entry_path": "/vaas-wanxing",
+  "product_line": "constellation",
+  "hosting": ["shared-instance"],
+  "visibility": "public",
+  "description": "萬星 VaaS 生成面（内容创作与分发引擎）：生成（图文/视频/语音）、渲染（video/still/document）、模板、产物资产、生成器注册表共 17 工具。publish_* 六件属发布面，按 ADR-0004「发布面从不多租户托管」仅在 stdio 暴露、hosting 形态下排除。",
+  "naming_convention": {
+    "order": "verb_noun",
+    "applies_to": "new_tools",
+    "note": "generate_*/render_*/templates_*/assets_*/registry_* 均 verb_noun；publish_* 同。"
+  },
+  "tool_groups": [
+    {
+      "group": "generate",
+      "level": "commercial",
+      "tools": ["generate_voice", "generate_image", "generate_video_submit", "video_job_status", "models_voices", "voiceover_assemble", "reference_clips_check"]
+    },
+    {
+      "group": "render",
+      "level": "commercial",
+      "tools": ["render_video", "render_still", "render_document"]
+    },
+    {
+      "group": "templates",
+      "level": "commercial",
+      "tools": ["templates_list", "templates_get"]
+    },
+    {
+      "group": "assets",
+      "level": "commercial",
+      "tools": ["assets_list", "assets_get", "assets_stats"]
+    },
+    {
+      "group": "registry",
+      "level": "commercial",
+      "tools": ["registry_list_generators", "registry_describe_generator"]
+    },
+    {
+      "group": "publish",
+      "level": "internal",
+      "tools": ["publish_video", "publish_article", "publish_validate_ready", "publish_get_config", "publish_simulate", "publish_record"],
+      "notes": "发布面：ADR-0004 规定从不多租户托管，stdio-only；hosting 形态下由 HOSTED_EXCLUDED 运行时排除，故不进 commercial 集。"
+    }
+  ],
+  "rules": {
+    "commercial_tools": ["generate_voice", "generate_image", "generate_video_submit", "video_job_status", "models_voices", "voiceover_assemble", "reference_clips_check", "render_video", "render_still", "render_document", "templates_list", "templates_get", "assets_list", "assets_get", "assets_stats", "registry_list_generators", "registry_describe_generator"],
+    "internal_tools": ["publish_video", "publish_article", "publish_validate_ready", "publish_get_config", "publish_simulate", "publish_record"],
+    "note": "hosting 形态只注册 17 个 commercial 工具；publish_* 六件在 hosted 模式被 HOSTED_EXCLUDED 排除（见 mcp_server/main.py）。selfcheck 在 hosted 形态下断言 commercial 集=运行时工具面。"
+  }
+}
