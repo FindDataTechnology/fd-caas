@@ -167,9 +167,10 @@ LOCAL_COMPUTE_TOOLS = {
 # Deterministic-render sub-units that are free even inside a cloud-priced tool
 # (e.g. render_video's own `render` unit alongside any paid `second` unit).
 LOCAL_COMPUTE_UNITS = {"render"}
-# Video lanes are priced by the sibling change (expose-video-generation-lanes).
-# Named here so the exemption is visible and dated instead of invisible.
-DEFERRED_ZERO_PRICE_TOOLS = {"generate_video_submit", "generate_video"}
+# Video lanes were priced 0.0 until 2026-11-22 (change expose-video-generation-lanes);
+# they now carry a real rate, so the exemption set is empty. Kept as a named constant
+# so a future deferral stays visible and dated instead of silently invisible.
+DEFERRED_ZERO_PRICE_TOOLS: set[str] = set()
 
 
 def _zero_priced_lanes(pricing: dict) -> list[str]:

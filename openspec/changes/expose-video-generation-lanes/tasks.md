@@ -2,28 +2,34 @@
 
 ## 1. 探针先行（首帧是否真的生效）
 
-- [ ] 1.1 `scripts/probe_video_lane.py`（新）：同一提示词跑两次——带首帧 / 不带首帧，
+- [x] 1.1 `scripts/probe_video_lane.py`（新）：同一提示词跑两次——带首帧 / 不带首帧，
       各落盘 mp4（`video.grok` 与 `video.ciyuan` 分别跑；ciyuan 若 down 记 cannot-judge）。
-- [ ] 1.2 判据：两次产物首帧像素距离显著大于零；且「带首帧产物首帧 ↔ 源图」的距离
+- [x] 1.2 判据：两次产物首帧像素距离显著大于零；且「带首帧产物首帧 ↔ 源图」的距离
       显著小于「无首帧产物首帧 ↔ 源图」。报告记录三个距离数值，不只给布尔。
-- [ ] 1.3 首帧形态分别验 URL 与 data URI；任一形态被拒即记录该形态不可用。
-- [ ] 1.4 退出码语义沿用既有探针（restored / still-blocked / cannot-judge，
+- [x] 1.3 首帧形态分别验 URL 与 data URI；任一形态被拒即记录该形态不可用。
+- [x] 1.4 退出码语义沿用既有探针（restored / still-blocked / cannot-judge，
       细分 first_frame_ignored / payload_rejected / credential_rejected / network）。
-- [ ] 1.5 结论写回 `lane_health.json`：首帧支持与否必须有独立字段，不能只写 imp 在 reason 里。
+- [x] 1.5 结论写回 `lane_health.json`：首帧支持与否必须有独立字段，不能只写 imp 在 reason 里。
 
 ## 2. 首帧形态转换
 
-- [ ] 2.1 `generators/video.py`：`first_frame` / `last_frame` 前置校验——接受 URL、
+- [x] 2.1 `generators/video.py`：`first_frame` / `last_frame` 前置校验——接受 URL、
       本地路径、VAAS asset id；不存在或不可读在 `prepare()` 之后、提交之前失败。
       代码注释写明：**绝不提交空首帧的付费任务**。
-- [ ] 2.2 `scripts/litellm-bridge.py`：`--first-frame` 放宽为"URL / 路径 / data URI"，
+- [x] 2.2 `scripts/litellm-bridge.py`：`--first-frame` 放宽为"URL / 路径 / data URI"，
       帮助文本同步更新；路径在桥接内读取并转 data URI（或走上传换 URL）。
-- [ ] 2.3 `_grok_video.py` / `_ciyuan_video.py`：按车道适配首帧形态
+- [x] 2.3 `_grok_video.py` / `_ciyuan_video.py`：按车道适配首帧形态
       （grok 用 `payload.image`，ciyuan 用 `content[].image_url.url`），
       转换失败给分类错误。
-- [ ] 2.4 单元测试：给定本地 PNG → 提交体里出现可解析的首帧；给定不存在路径 → 提交前失败且无网络调用。
+- [x] 2.4 单元测试：给定本地 PNG → 提交体里出现可解析的首帧；给定不存在路径 → 提交前失败且无网络调用。
 
 ## 3. 计费与台账订正
+
+> 真实端到端（2026-11-22，生产 hosted `sha-59a8591`）：
+> 纯文生视频 job succeeded（对照）；带首帧 job succeeded（`vid_09e1fa0f…`，
+> 承做 kling-video-v3，3.7MB mp4）。首帧抽帧对比：
+> 带首帧 RGB(55,71,97) 偏蓝 vs 无首帧 RGB(146,162,182) 灰白 —— 首帧确实生效。
+
 
 - [ ] 3.1 `pricing.json`：`generate_video_submit` / `generate_video` 填真价（**人填**，
       `_comment` 标取值日期与来源）。

@@ -136,15 +136,16 @@ def test_zero_priced_cloud_lane_is_refused(tmp_path, monkeypatch, caplog):
     assert "generate_image" in str(e.value)
 
 
-def test_local_compute_and_deferred_zeros_are_exempt():
-    m = _main_module()
+def test_local_compute_zeros_are_exempt():
+    """本地算力（chromium/ffmpeg）单价 0.0 是设计，不是漏填。
 
-    ok = {
-        "render_video": {"second": 0.0, "render": 0.0},
-        "generate_video_submit": {"second": 0.0},
-        "generate_image": {"image": 0.144},
-    }
-    assert m._zero_priced_lanes(ok) == []
+    注意 `generate_video_submit` **不在**豁免里了：2026-11-22 给它填了真价
+    （¥0.36/秒，取自 sub2api usage_logs），它已从「延后定价」转为正常云车道，
+    零价会被闸拦。
+    """
+    m = _main_module()
+    assert m._zero_priced_lanes({"render_video": {"second": 0.0, "render": 0.0}}) == []
+    assert m._zero_priced_lanes({"generate_video_submit": {"second": 0.0}}) == ["generate_video_submit"]
 
 
 def test_priced_repriced_lane_passes():
