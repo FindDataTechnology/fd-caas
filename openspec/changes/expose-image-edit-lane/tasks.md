@@ -82,6 +82,21 @@
 - [x] 6.3 `docs/debt-ledger.md` 增补一行：编辑车道的承做方漂移风险与复验方式。
       （DEBT-EDIT-01，含复验命令与三种判据的处置方向。）
 
+## 7. 验收（2026-11-22，全程在 cheap9 上跑）
+
+- [x] 7.1 正常态：generate → edit → 血缘正确 → 签名 URL → 产物 270,801 B 落盘 → usage 两条。
+- [x] 7.2 故障注入：`docker restart openbao` → SEALED 为真；此时 `/health` 仍报
+      `{"ok":true,"hosted":true}`（**探针骗人**，它不查 vault）。
+- [x] 7.3 报错指向对的地方：sealed 且清空凭据缓存后，`edit_image` 返回
+      `lane_down (image/volcengine) ... NOTE: the vault could not be read, so 'volcengine'
+      is the env fallback ... check the vault is unsealed`。
+      三条判据（lane_down 仍在 / 附加 vault 警示 / 指明 unsealed）全部命中。
+- [x] 7.4 自愈：`health-watch.sh` 单跑一次 → unseal → vault 可读；已装 crontab（*/5），
+      实测 cron 期间自动解封过一次（测试时被它抢先）。
+- [x] 7.5 出片滚版：`sha-082cc2d` → hkccr/ccr 同 digest `8aa4411` → cheap9 容器已在跑该镜像。
+- [x] 7.6 发现并记录：凭据缓存 TTL 300s，故 vault 封后**5 分钟内仍能出图**（缓存兜着）。
+      这意味着「sealed」不会立刻表现为失败——排查时要先看缓存是否还热。
+
 ## Workflow follow-up
 
 - 归档前需 `openspec sync-specs` 把两份 delta 合入主规格（`ciyuan-lane-providers`、
