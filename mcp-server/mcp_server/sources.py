@@ -33,9 +33,30 @@ def _base_url() -> str:
     return os.getenv("VAAS_SOURCE_BASE", DEFAULT_BASE).rstrip("/")
 
 
+def _env_keys(service: str, suffix: str) -> list[str]:
+    """Candidate env-var names for a service, most-specific first.
+
+    Service ids are full repo names ("fd-text-core"); operators naturally set
+    the short form ("TEXT_CORE"). Accept both so config is forgiving.
+    """
+    norm = service.upper().replace("-", "_")
+    keys = [f"VAAS_SOURCE_{norm}_{suffix}"]
+    if norm.startswith("FD_"):
+        keys.append(f"VAAS_SOURCE_{norm[3:]}_{suffix}")
+    return keys
+
+
+def _first_env(service: str, suffix: str) -> Optional[str]:
+    for key in _env_keys(service, suffix):
+        v = os.getenv(key)
+        if v and v.strip():
+            return v.strip()
+    return None
+
+
 def _resolve_endpoint(service: str) -> str:
     """Explicit per-service override wins; otherwise base/service/mcp."""
-    override = os.getenv("VAAS_SOURCE_" + service.upper().replace("-", "_") + "_URL")
+    override = _first_env(service, "URL")
     if override:
         return override
     return f"{_base_url()}/{service}/mcp"
@@ -48,8 +69,7 @@ def _resolve_bearer(service: str) -> Optional[str]:
     also gates on tenant identity, which a server-to-server lane call does not
     have — so lanes normally talk to the INTERNAL faces with their line token.
     """
-    tok = os.getenv("VAAS_SOURCE_" + service.upper().replace("-", "_") + "_BEARER")
-    return tok.strip() if tok and tok.strip() else None
+    return _first_env(service, "BEARER")
 
 
 def load_sources() -> dict:
