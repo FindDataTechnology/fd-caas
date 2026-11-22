@@ -103,7 +103,26 @@ def test_render_document_end_to_end_cites():
     assert out["products"] and out["products"][0]["format"] == "pdf"
 
 
-def test_no_citations_path_unchanged():
+def test_tool_wrapper_forwards_citations():
+    """The MCP tool wrapper must forward citations/cite_format to the engine
+    (the exact bug where the engine supports it but the tool surface didn't)."""
+    from mcp_server.tools.render import render_document as tool
+    captured = {}
+
+    def fake_render(**kw):
+        captured.update(kw)
+        return {"ok": True}
+
+    import mcp_server.tools.doc_render as dr
+    orig = dr.render_document
+    dr.render_document = fake_render
+    try:
+        tool("x", "pdf", template="academic-gbt7714", slug="s",
+             citations=[{"id": "c1"}], cite_format="gbt7714")
+    finally:
+        dr.render_document = orig
+    assert captured["citations"] == [{"id": "c1"}]
+    assert captured["cite_format"] == "gbt7714"
     """Rollback proof (task 5.2): with no citations, rendering a default doc is
     byte-for-byte the same path as before this change — no bibliography, no
     anchor rewriting. Existing callers (no citations arg) are unaffected."""

@@ -321,7 +321,8 @@ class TestRenderStillAndDocumentSkeletons:
         out = render_mod.render_document("# hi", format="longimage")
         assert out == {"type": "doc"}
         assert captured == {"source": "# hi", "format": "longimage",
-                            "template": "default", "slug": None}
+                            "template": "default", "slug": None,
+                            "citations": None, "cite_format": None}
 
 
 class TestTemplates:

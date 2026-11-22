@@ -348,7 +348,8 @@ class TestDispatcherSurface:
         out = render_mod.render_document("# hi", format="longimage")
         assert out == {"type": "doc"}
         assert captured == {"source": "# hi", "format": "longimage",
-                            "template": "default", "slug": None}
+                            "template": "default", "slug": None,
+                            "citations": None, "cite_format": None}
 
     def test_dispatch_format_whitelist_unchanged(self):
         with pytest.raises(ValueError, match="unknown document format: docx"):

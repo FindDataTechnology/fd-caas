@@ -962,11 +962,15 @@ def render_still(kind: str, spec: dict, slug: Optional[str] = None) -> dict:
 
 
 def render_document(source: str, format, template: Optional[str] = None,
-                    slug: Optional[str] = None) -> dict:
+                    slug: Optional[str] = None,
+                    citations: Optional[list] = None,
+                    cite_format: Optional[str] = None) -> dict:
     """Render a document: format ∈ {pdf, longimage}，或两者的列表.
 
     source 为 md 或 html 文本/路径；template 未指定用 "default"。format 接受
     字符串或列表（W3 内核已支持多格式，每份产物独立落账）；非法值报错不变。
+    citations + cite_format（serious-text）：源中的 [[cite:<id>]] 按所选格式渲成
+    编号参考文献并在正文回引；解不出的锚点截除、不渲染无出处的编号。
     """
     valid = ("pdf", "longimage")
     if isinstance(format, str):
@@ -983,4 +987,5 @@ def render_document(source: str, format, template: Optional[str] = None,
         raise ValueError("source is required (markdown/html text or path)")
     from .doc_render import render_document as _render
     return _render(source=source, format=format,
-                   template=template or "default", slug=slug)
+                   template=template or "default", slug=slug,
+                   citations=citations, cite_format=cite_format)
