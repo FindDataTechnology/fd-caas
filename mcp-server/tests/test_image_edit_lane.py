@@ -277,3 +277,32 @@ def test_edit_payload_uses_singular_image_field(tmp_path, monkeypatch):
     assert "image" in body, "upstream edits requires the singular `image` field"
     assert "images" not in body or isinstance(body.get("images"), list)
     assert body["prompt"] == "x"
+
+
+# ─── vault-unreadable must not masquerade as lane_down ─────────────────────
+
+def test_vault_unreadable_is_not_reported_as_lane_down(monkeypatch):
+    """2026-11-22 实测：OpenBAO 重启即 SEALED；provider_peek 读不到 → 回退 volcengine
+    → 报 `lane_down (image/volcengine) (unconfigured)`。这个报错把人引去查 registry，
+    而真因是 vault 锁着。判据保持 lane_down，但必须附带 vault 提示。
+    """
+    from mcp_server.generators import runtime as rt
+
+    monkeypatch.setenv("VAAS_HOSTED", "1")
+    monkeypatch.setattr(rt, "is_hosted", lambda: True)
+    monkeypatch.setattr(rt._credentials, "provider_peek", lambda kind: None)  # vault unreadable
+    # lane_health is imported inside prepare() to avoid a load-time cycle; patch its home.
+    import mcp_server.lane_health as lh
+    monkeypatch.setattr(lh, "lane_health",
+                        lambda k, p: {"health": "down", "reason_class": "unconfigured"})
+    monkeypatch.setattr(rt, "current_owner", lambda: "svc")
+
+    from mcp_server.credentials import CredentialUnavailable
+    with pytest.raises(CredentialUnavailable) as e:
+        rt.prepare("image", {"prompt": "x"})
+    msg = str(e.value)
+    # 判据仍是 lane_down（车道真 down 不能因 vault 可疑就放行）——但必须带 vault 提示，
+    # 否则同一条报错会把人引去查 registry。
+    assert "lane_down" in msg
+    assert "vault could not be read" in msg
+    assert "unsealed" in msg

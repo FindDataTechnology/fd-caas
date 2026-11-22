@@ -93,10 +93,22 @@ def prepare(kind: str, params: dict) -> dict:
     gate_on = is_hosted() or os.getenv("VAAS_LANE_HEALTH_GATE", "") == "1"
     if gate_on and lane_health(kind, lane_prov).get("health") == "down":
         h = lane_health(kind, lane_prov)
+        # 判据仍是 lane_down（车道真 down 时必须原样拒绝，不能因为 vault 可疑就放行）。
+        # 但加一句限定：vault 读不到时 provider 是**猜的**，那条 down 判定可能属于另一个
+        # 车道。2026-11-22 实测：OpenBAO 重启即 SEALED，provider_peek 返回 None →
+        # 回退 volcengine → 报 `lane_down (image/volcengine) (unconfigured)`，
+        # 把人引去查 registry，而真因是 vault 锁着。
+        hint = ""
+        if is_hosted() and _credentials.provider_peek(kind) is None:
+            hint = (
+                f" NOTE: the vault could not be read, so '{lane_prov}' is the env fallback, "
+                f"not necessarily the lane this call would use — check the vault is unsealed "
+                f"and reachable before acting on this verdict."
+            )
         raise CredentialUnavailable(
             f"lane_down ({kind}/{lane_prov}): lane is down per lane_health ledger "
             f"({h.get('reason_class')}); check registry.list_generators for "
-            f"health and do not retry in a loop"
+            f"health and do not retry in a loop.{hint}"
         )
     resolved = resolve(kind)
     env = subprocess_env(resolved, kind)
