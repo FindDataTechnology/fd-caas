@@ -118,3 +118,82 @@ def test_gate_source_text_unchanged():
     gate_draft(text, [])
     assert text == "A[[cite:ghost]]."  # caller's source is never mutated
 
+
+
+# ─── verify client + citation_verify (task 2.3, offline) ────────────────────
+
+import io
+import json as _json
+
+
+class _Resp:
+    def __init__(self, body):
+        self._b = body
+    def read(self):
+        return self._b
+    def __enter__(self):
+        return self
+    def __exit__(self, *a):
+        return False
+
+
+def test_verify_refs_not_configured(monkeypatch):
+    import mcp_server.verify_client as V
+    monkeypatch.delenv("VAAS_VERIFY_URL", raising=False)
+    monkeypatch.delenv("VAAS_VERIFY_TOKEN", raising=False)
+    r = V.verify_refs("x", [{"id": "c1"}])
+    assert r["ok"] is False and r["reason"] == "not_configured"
+
+
+def test_verify_refs_maps_statuses(monkeypatch):
+    import mcp_server.verify_client as V
+    monkeypatch.setenv("VAAS_VERIFY_URL", "http://verify.local/api/v1/verify")
+    monkeypatch.setenv("VAAS_VERIFY_TOKEN", "tok")
+    body = {"blocked_citation_ids": ["ghost"], "pending_citation_ids": ["c2"],
+            "counts": {"total": 2}, "mode": "shadow",
+            "cleaned_text": "x", "report": {}, "annotations": []}
+
+    def fake_urlopen(req, timeout=None):
+        return _Resp(_json.dumps(body).encode())
+    monkeypatch.setattr(V.urllib.request, "urlopen", fake_urlopen)
+    r = V.verify_refs("text", [{"id": "c1"}, {"id": "c2"}, {"id": "ghost"}])
+    assert r["ok"] is True
+    assert r["statuses"] == {"c1": "supported", "c2": "pending", "ghost": "blocked"}
+
+
+def test_verify_refs_unreachable_is_visible(monkeypatch):
+    import mcp_server.verify_client as V
+    monkeypatch.setenv("VAAS_VERIFY_URL", "http://verify.local/api/v1/verify")
+    monkeypatch.setenv("VAAS_VERIFY_TOKEN", "tok")
+
+    def boom(req, timeout=None):
+        raise OSError("connection refused")
+    monkeypatch.setattr(V.urllib.request, "urlopen", boom)
+    r = V.verify_refs("text", [{"id": "c1"}])
+    assert r["ok"] is False and r["reason"] == "unreachable"
+
+
+def test_citation_verify_persists_and_is_owner_scoped(monkeypatch):
+    """citation_verify writes statuses back only when the engine answers ok."""
+    from mcp_server.tools import citations as T
+    asset = _asset()
+    cid = insert_citation(asset, "openalex", "W1", "2026-11-01")
+    monkeypatch.setattr(T, "current_owner", lambda: "service")
+    monkeypatch.setattr(T, "_verify", lambda text, cites, mode=None: {
+        "ok": True, "statuses": {cid: "blocked"}, "blocked": [cid], "pending": [],
+        "reason": None, "counts": {}, "mode": "shadow"})
+    out = T.citation_verify("x", asset)
+    assert out["ok"] and out["updated"] == 1
+    assert get_citation(cid)["status"] == "blocked"
+
+
+def test_citation_verify_failure_does_not_overwrite(monkeypatch):
+    from mcp_server.tools import citations as T
+    asset = _asset()
+    cid = insert_citation(asset, "openalex", "W1", "2026-11-01")
+    monkeypatch.setattr(T, "current_owner", lambda: "service")
+    monkeypatch.setattr(T, "_verify", lambda text, cites, mode=None: {
+        "ok": False, "statuses": {}, "reason": "unreachable", "blocked": [], "pending": []})
+    out = T.citation_verify("x", asset)
+    assert out["ok"] is False and out["updated"] == 0
+    assert get_citation(cid)["status"] == "resolvable"  # unchanged

@@ -7,7 +7,7 @@ CANONICAL_TOOLS filtered by is_hosted() when the module loads), so flipping
 VAAS_HOSTED inside this pytest process cannot re-register the surface — a
 subprocess per state is the reliable isolation.
 
-  stdio  (default)            → 29 tools: 23 hosted + 6 publish (stdio-only plane)
+  stdio  (default)            → 30 tools: 24 hosted + 6 publish (stdio-only plane)
   hosted (VAAS_HOSTED=1)      → 23 tools; publish_* gone, orchestrate_*/legacy
                                 aliases gone, and a publish_video tool call is
                                 rejected (Unknown tool — nothing executes).
@@ -37,7 +37,7 @@ HOSTED_TOOLS = [
     # source lane (strengthen-caas-serious-text): hosted, deterministic, metered
     "source_search", "source_domains",
     # citation store + draft gate: hosted, deterministic
-    "citation_record", "citation_list", "citation_gate",
+    "citation_record", "citation_list", "citation_gate", "citation_verify",
 ]
 PUBLISH_TOOLS = [
     "publish_video", "publish_article", "publish_validate_ready",
@@ -101,24 +101,24 @@ def _probe(hosted: bool, call_publish: bool) -> dict:
 class TestStdioSurface:
     """Default mode: full 29-tool surface, publish plane included."""
 
-    def test_stdio_surface_is_29_exact(self):
+    def test_stdio_surface_is_30_exact(self):
         names = _probe(hosted=False, call_publish=False)["names"]
         assert sorted(names) == sorted(STDIO_TOOLS), names
-        assert len(names) == 29
+        assert len(names) == 30
         for gone in RETIRED_TOOLS:
             assert gone not in names, f"retired tool still registered: {gone}"
 
 
 class TestHostedSurface:
-    """VAAS_HOSTED=1 / VAAS_TRANSPORT=http: 23 hosted tools, publish plane gone."""
+    """VAAS_HOSTED=1 / VAAS_TRANSPORT=http: 24 hosted tools, publish plane gone."""
 
     @pytest.fixture(scope="class")
     def hosted_names(self):
         return _probe(hosted=True, call_publish=False)["names"]
 
-    def test_hosted_surface_is_23_exact(self, hosted_names):
+    def test_hosted_surface_is_24_exact(self, hosted_names):
         assert sorted(hosted_names) == sorted(HOSTED_TOOLS), hosted_names
-        assert len(hosted_names) == 23
+        assert len(hosted_names) == 24
 
     def test_publish_plane_not_registered(self, hosted_names):
         leaked = [n for n in hosted_names if n.startswith("publish")]

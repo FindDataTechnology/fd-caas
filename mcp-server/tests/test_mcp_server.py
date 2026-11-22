@@ -131,7 +131,7 @@ class TestToolSurface:
             "assets_list", "assets_get", "assets_stats",
             "registry_list_generators", "registry_describe_generator",
             "source_search", "source_domains",
-            "citation_record", "citation_list", "citation_gate",
+            "citation_record", "citation_list", "citation_gate", "citation_verify",
         ]
         for expected in canonical:
             assert expected in tools, f"missing tool {expected}"
@@ -139,7 +139,7 @@ class TestToolSurface:
         for pub in ["publish_video", "publish_article", "publish_validate_ready",
                     "publish_get_config", "publish_simulate", "publish_record"]:
             assert pub in tools, f"missing tool {pub}"
-        assert len(tools) == 29, tools
+        assert len(tools) == 30, tools
         # retired tools + legacy aliases are gone
         for gone in ["orchestrate_brainstorm", "orchestrate_voiceover",
                      "generate_cover", "generate_video",

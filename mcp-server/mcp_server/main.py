@@ -54,7 +54,7 @@ from .tools.publish import (
 from .tools.assets import assets_list, assets_get, assets_stats
 from .tools.registry_tools import registry_list_generators, registry_describe_generator
 from .tools.source import source_search, source_domains
-from .tools.citations import citation_record, citation_list, citation_gate
+from .tools.citations import citation_record, citation_list, citation_gate, citation_verify
 
 mcp = FastMCP("VAAS")
 
@@ -74,8 +74,8 @@ CANONICAL_TOOLS = [
     registry_list_generators, registry_describe_generator,
     # source lane: hosted, deterministic, metered (strengthen-caas-serious-text)
     source_search, source_domains,
-    # citation store + draft gate: hosted, deterministic (verification is upstream)
-    citation_record, citation_list, citation_gate,
+    # citation store + draft gate + verify (engine is fd-shilun, called over HTTP)
+    citation_record, citation_list, citation_gate, citation_verify,
     # publish plane: stdio-only (hosted surface excludes it, ADR-0004)
     publish_video, publish_article,
     publish_validate_ready, publish_get_config, publish_simulate, publish_record,

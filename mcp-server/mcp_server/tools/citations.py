@@ -10,6 +10,7 @@ verification engine itself is fd-shilun's — not duplicated here.
 from typing import Optional
 
 from ..citations import gate_draft as _gate
+from ..verify_client import verify_refs as _verify
 from ..db import (
     insert_citation, list_citations, get_citation, update_citation_status,
     CITATION_STATUSES,
@@ -55,3 +56,36 @@ def citation_gate(text: str, asset_id: str) -> dict:
     owner = current_owner()
     cites = list_citations(asset_id, owner=owner)
     return _gate(text, cites)
+
+
+def citation_verify(text: str, asset_id: str, mode: Optional[str] = None) -> dict:
+    """Run the fd-shilun 3-level verify engine on a draft and persist the
+    resulting per-citation statuses.
+
+    The engine is called over HTTP (not re-implemented). Returned statuses are
+    written back to this asset's citations (blocked/pending/supported) so a
+    subsequent citation_gate reflects them. If the engine is not configured or
+    unreachable, nothing is overwritten and a `reason` is returned — a failed
+    verify MUST NOT silently mark citations as passed.
+    """
+    owner = current_owner()
+    cites = list_citations(asset_id, owner=owner)
+    result = _verify(text, cites, mode=mode)
+    updated = 0
+    if result.get("ok"):
+        for cid, status in (result.get("statuses") or {}).items():
+            # Only update citations this tenant owns (get_citation enforces it).
+            if get_citation(cid, owner=owner) is not None:
+                update_citation_status(cid, status)
+                updated += 1
+    return {
+        "asset_id": asset_id,
+        "ok": bool(result.get("ok")),
+        "updated": updated,
+        "blocked": result.get("blocked", []),
+        "pending": result.get("pending", []),
+        "reason": result.get("reason"),
+        "detail": result.get("detail"),
+        "counts": result.get("counts"),
+        "mode": result.get("mode"),
+    }
