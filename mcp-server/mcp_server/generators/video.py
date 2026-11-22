@@ -15,8 +15,8 @@ from pathlib import Path
 from typing import Optional
 
 from ..db import (
-    insert_content, insert_job, update_job, get_job, expire_stale_jobs,
-    generate_id, scoped_asset_slug,
+    insert_content, insert_asset_idempotent, insert_job, update_job, get_job,
+    expire_stale_jobs, generate_id, scoped_asset_slug, get_asset,
 )
 from ..utils import generate_slug, ensure_directory_rel, get_relative_path, VAAS_ROOT
 from .runtime import finish, prepare, run_bridge
@@ -216,13 +216,13 @@ def generate(
     if measured is not None:
         metadata["duration_sec"] = measured
         metadata["duration_source"] = "measured"
-    insert_content(
-        id=content_id,
+    # 同 poll()：确定性 slug 重复出现是正常重放，不是错误。
+    content_id, _created = insert_asset_idempotent(
         type="video",
         slug=scoped_asset_slug(slug, owner),
         file_path=get_relative_path("videos", slug, f"{slug}.mp4"),
         metadata=metadata,
-        status=status,
+        stage=status,
         owner=owner,
     )
 
@@ -362,15 +362,22 @@ def poll(job_id: str, owner: Optional[str] = None) -> dict:
         if measured is not None:
             metadata["duration_sec"] = measured
             metadata["duration_source"] = duration_source
-        insert_content(
-            id=asset_id,
+        # 幂等落账：调用方给的 slug 是**确定性**的（剧创的 `jc-i2v-<场>-<镜>`），
+        # 同一个 slug 第二次出现是正常的（重放 / 同镜重生成），不是错误。
+        # 用 insert_content 会让 `UNIQUE constraint failed: assets.slug` 冒到轮询
+        # 结果里，看起来像「视频任务失败」——2026-11-22 实测踩到。
+        content_id, created = insert_asset_idempotent(
             type="video",
             slug=scoped_asset_slug(slug, job["owner"]),
             file_path=rel,
             metadata=metadata,
-            status="rendered",
+            stage="rendered",
             owner=job["owner"],
         )
+        asset_id = content_id
+        if not created:
+            metadata["replayed"] = True
+            metadata["requested_new_asset_id"] = generate_id()
         update_job(job_id, status="succeeded", asset_id=asset_id)
         # No measured seconds => no billable artifact landed: bill 0 and say
         # so. The old hard-coded 5s is gone (never bill a claimed duration).

@@ -122,3 +122,26 @@ def test_probe_distances_method_is_sound():
     assert dist(with_frame, src) < dist(without_frame, src)
     assert dist(with_frame, src) < 50          # 远小于数量级
     assert dist(without_frame, src) > 200
+
+
+# ─── 确定性 slug 重复是重放，不是失败 ─────────────────────────────────────
+
+def test_idempotent_asset_insert_on_duplicate_slug(monkeypatch):
+    """调用方（如剧创）用确定性 slug：同镜重生成会再次命中同一 slug。
+
+    2026-11-22 实测：`poll()` 用 insert_content 落账，第二次直接抛
+    `UNIQUE constraint failed: assets.slug`，冒到轮询结果里看起来像
+    「视频任务失败」——其实是重放。改用 insert_asset_idempotent。
+    """
+    from mcp_server import db
+
+    first, created1 = db.insert_asset_idempotent(
+        type="video", slug="dup-test-slug", file_path="v/1.mp4",
+        metadata={"a": 1}, stage="rendered", owner="svc",
+    )
+    second, created2 = db.insert_asset_idempotent(
+        type="video", slug="dup-test-slug", file_path="v/2.mp4",
+        metadata={"a": 2}, stage="rendered", owner="svc",
+    )
+    assert created1 is True and created2 is False
+    assert first == second, "同 slug 必须复用它自己的行，而不是新建或崩溃"
