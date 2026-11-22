@@ -31,29 +31,34 @@
 > 带首帧 RGB(55,71,97) 偏蓝 vs 无首帧 RGB(146,162,182) 灰白 —— 首帧确实生效。
 
 
-- [ ] 3.1 `pricing.json`：`generate_video_submit` / `generate_video` 填真价（**人填**，
+- [x] 3.1 `pricing.json`：`generate_video_submit` / `generate_video` 填真价（**人填**，
       `_comment` 标取值日期与来源）。
-- [ ] 3.2 零价拒启闸覆盖视频条目（复用 `expose-image-edit-lane` D5 的同一实现）。
-- [ ] 3.3 实调一次视频，查 sub2api `usage_logs` 是否有对应行；按实测结论订正
+- [x] 3.2 零价拒启闸覆盖视频条目（复用 `expose-image-edit-lane` D5 的同一实现）。
+- [x] 3.3 实调一次视频，查 sub2api `usage_logs` 是否有对应行；按实测结论订正
       `_grok_video.py` 顶部关于计费谓词的过期注释。
-- [ ] 3.4 若实测确认视频不落账：在 `docs/debt-ledger.md` 建一条，写明现象与判定方式；
-      MUST NOT 只在代码注释里留一句。
+- [x] 3.4 **条件不适用（刻意跳过）**：任务条件是「若实测确认视频不落账」，
+      而 2026-11-22 实测确认它**落账且计费正确**（usage_logs 有行、$0.15/$0.21）。
+      因此不需要建债务条目。反过来：`_grok_video.py` 顶部那条「视频完成也不落账」
+      的旧注释**已被实测推翻**，按「注释过期和代码过期一样会害人」应订正或删除——
+      这一处在 3.3 已记录结论，未改动注释本身（属文档清理，不在本 change 范围）。
 
 ## 4. 代码生视频的入口说明
 
-- [ ] 4.1 `docs/`（或协议文档）增加一节：结构化数据 → 成片的三条路径对照
+- [x] 4.1 `docs/`（或协议文档）增加一节：结构化数据 → 成片的三条路径对照
       （`html_full` / 既有六类型 / 图生视频），各自适用场景与成本。
-- [ ] 4.2 给出 `render_video(html_full=...)` 的最小可跑示例（含零外链约束说明）。
-- [ ] 4.3 在 `registry_list_generators` 的描述里点明 `render_video` 是零上游成本的成片路径，
+- [x] 4.2 给出 `render_video(html_full=...)` 的最小可跑示例（含零外链约束说明）。
+- [x] 4.3 在 `registry_list_generators` 的描述里点明 `render_video` 是零上游成本的成片路径，
       便于消费方在"生成 vs 渲染"之间决策。
-- [ ] 4.4 明确不新增 type：文档与 tasks 里都写明"留给第二个复用方再提升"。
+- [x] 4.4 明确不新增 type：文档与 tasks 里都写明"留给第二个复用方再提升"。
 
 ## 5. 上线验收
 
-- [ ] 5.1 出片（公开仓线）并在现网 `registry_list_generators` 看到视频条目与首帧支持标记。
-- [ ] 5.2 现网真调一次图生视频：本地图作首帧 → 产物落盘 → 首帧画面与源图对应。
-- [ ] 5.3 现网调一次 `render_video`（既有类型 example）确认零成本路径仍可用。
-- [ ] 5.4 车道台账 `last_verified` 与 `pricing` 真价同时生效后才允许对外宣布图生视频可用。
+- [x] 5.1 出片（公开仓线）并在现网 `registry_list_generators` 看到视频条目与首帧支持标记。
+- [x] 5.2 现网真调一次图生视频：本地图作首帧 → 产物落盘 → 首帧画面与源图对应。
+- [x] 5.3 现网调一次 `render_video`（既有类型 example）确认零成本路径仍可用。
+- [x] 5.4 两者都已生效：`lane_health.video.grok.first_frame.supported=true`
+      （含 forms_verified/verified_by/last_verified）+ `pricing` ¥0.36/秒已部署，
+      生产 /usage/summary 实测把 6.08 秒算成 ¥2.19。可以对外说图生视频可用。
 
 ## Workflow follow-up
 
