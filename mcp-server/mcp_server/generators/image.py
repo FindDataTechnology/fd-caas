@@ -30,6 +30,12 @@ IMAGE_FORMATS = {"png", "jpeg", "jpg", "webp"}
 N_SUPPORTED_PROVIDERS = {"ciyuan"}
 
 
+def _looks_like_asset_id(value: str) -> bool:
+    """A ledger id is a UUID; a path/URL never is. Keep the check cheap and explicit."""
+    s = (value or "").strip()
+    return len(s) == 36 and s.count("-") == 4 and "/" not in s and "." not in s
+
+
 def edit(
     source: str,
     instruction: str,
@@ -37,7 +43,7 @@ def edit(
     references: Optional[list] = None,
     n: int = 1,
     slug: Optional[str] = None,
-    name: str = "seedream-grok",
+    name: str = "edit-grok",
 ) -> dict:
     """Edit one image with a natural-language instruction (POST /v1/images/edits).
 
@@ -86,6 +92,28 @@ def edit(
 
     ctx = prepare("image", {"source": source, "instruction": instruction, "slug": slug})
 
+    # `source` may be a VAAS asset id, not just a path/URL. Resolve it to a file
+    # before the bridge sees it: the bridge only speaks paths and URLs, and an
+    # unresolved id reaches it as a nonexistent path ("source image not found").
+    # The resolution must happen here (not in the bridge) because only the
+    # generator layer knows the ledger and the caller's tenant.
+    source_ref = source
+    source_asset = get_asset(source, owner=ctx["owner"]) if _looks_like_asset_id(source) else None
+    if source_asset:
+        rel = source_asset.get("file_path") or ""
+        abs_path = Path(VAAS_ROOT) / "downloads" / rel if rel else None
+        if not abs_path or not abs_path.is_file():
+            raise RuntimeError(
+                f"invalid_input: asset {source} has no readable file on disk "
+                f"(file_path={rel!r}) — cannot use it as an edit source"
+            )
+        source_ref = str(abs_path)
+    references = [
+        str((Path(VAAS_ROOT) / "downloads" / (get_asset(r, owner=ctx["owner"]) or {}).get("file_path", "")))
+        if _looks_like_asset_id(r) and get_asset(r, owner=ctx["owner"]) else r
+        for r in (references or [])
+    ]
+
     if not slug:
         prefix = instruction[:20].lower().replace(" ", "-")
         prefix = "".join(c for c in prefix if c.isalnum() or c == "-")
@@ -97,7 +125,7 @@ def edit(
     cmd = [
         "python", str(LITELLM_BRIDGE), "image",
         "--prompt", instruction,
-        "--source", source,
+        "--source", source_ref,
         "--output", str(output_path),
     ]
     if mask:
@@ -143,11 +171,7 @@ def edit(
     # from, so "which round of edits produced this" is answerable from the
     # ledger alone. A source given as a bare path (not a ledger asset) simply
     # has no parent — recorded in metadata instead of invented.
-    source_asset_id = None
-    source_asset = get_asset(source, owner=ctx["owner"]) if not source.startswith(
-        ("http://", "https://", "data:", "/", "./", "../")) else None
-    if source_asset:
-        source_asset_id = source_asset.get("id")
+    source_asset_id = source_asset.get("id") if source_asset else None
 
     content_id = generate_id()
     metadata = {

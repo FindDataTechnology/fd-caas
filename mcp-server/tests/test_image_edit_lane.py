@@ -212,7 +212,15 @@ def test_edit_records_parent_asset(tmp_path, monkeypatch):
     monkeypatch.setattr(gen_image, "ensure_directory_rel", lambda *a, **k: out_dir)
     monkeypatch.setattr(gen_image, "get_relative_path", lambda *a, **k: "/".join(map(str, a)))
     monkeypatch.setattr(gen_image, "generate_slug", lambda p: "slug")
-    monkeypatch.setattr(gen_image, "get_asset", lambda aid, owner=None: {"id": "PARENT1"})
+    parent_id = "138fcca5-84af-4473-b451-0b8eb85131dd"
+    monkeypatch.setattr(gen_image, "get_asset", lambda aid, owner=None: {
+        "id": parent_id,
+        "file_path": "images/slug/src.png",  # resolved under VAAS_ROOT/downloads
+    })
+    # code resolves VAAS_ROOT/downloads/<rel>; materialise that exact path
+    (tmp_path / "downloads" / "images" / "slug").mkdir(parents=True, exist_ok=True)
+    (tmp_path / "downloads" / "images" / "slug" / "src.png").write_bytes(src_file.read_bytes())
+    monkeypatch.setattr(gen_image, "VAAS_ROOT", tmp_path)
     monkeypatch.setattr(gen_image, "finish", lambda *a, **k: {})
     monkeypatch.setattr(gen_image, "insert_asset", lambda **kw: captured.update(kw) or kw.get("id"))
     # get_generator is imported *inside* edit() (registry imports this module,
@@ -220,6 +228,52 @@ def test_edit_records_parent_asset(tmp_path, monkeypatch):
     import mcp_server.registry as reg
     monkeypatch.setattr(reg, "get_generator", lambda t, n: {"provider": "grok", "model": "m"})
 
-    gen_image.edit(source="PARENT1", instruction="make it blue")
-    assert captured.get("parent_id") == "PARENT1"
-    assert captured.get("metadata", {}).get("source_asset_id") == "PARENT1"
+    gen_image.edit(source=parent_id, instruction="make it blue")
+    assert captured.get("parent_id") == parent_id
+    assert captured.get("metadata", {}).get("source_asset_id") == parent_id
+
+
+# ─── registry: the edit entry must carry the edit model, not the generate one ──
+
+def test_edit_registry_entry_uses_edit_model():
+    """2026-11-22 实测踩过：edit() 的 name 默认值曾是 `seedream-grok`（生成条目），
+    于是编辑请求带着 `grok-imagine-image` 打到 /v1/images/edits，上游回
+    400「目录里没有图生图模型」。模型名是车道契约的一部分，不是随便能继承的。"""
+    from mcp_server.registry import load_registry
+    entries = {e["name"]: e for e in load_registry()["image"]}
+    assert "edit-grok" in entries, "edit-grok must be registered"
+    assert entries["edit-grok"]["model"] == "grok-imagine-edit", (
+        "the edit lane's model is grok-imagine-edit; grok-imagine-image is the "
+        "generation model and the upstream rejects it on /v1/images/edits"
+    )
+    assert entries["edit-grok"]["driver"] == "edit_image"
+    # generation entry must not have been repurposed
+    assert entries["seedream-grok"]["driver"] == "generate_image"
+
+
+def test_edit_payload_uses_singular_image_field(tmp_path, monkeypatch):
+    """上游契约是 `image`（单数）+ 可选 `images`，不是 OpenAI 的 `images[]`。
+    写错就是 400「改图要带 image」——实测踩过。"""
+    import base64, json as _json
+    src = tmp_path / "src.png"
+    src.write_bytes(b"\x89PNG\r\n\x1a\n" + b"orig" * 8)
+    sent = {}
+
+    class _R:
+        headers = {"Content-Type": "application/json"}
+        def read(self): return _json.dumps({"data": [{"b64_json": base64.b64encode(
+            b"\x89PNG\r\n\x1a\n" + b"edited" * 8).decode()}]}).encode()
+        def __enter__(self): return self
+        def __exit__(self, *a): return False
+
+    def fake(req, *a, **k):
+        sent["body"] = _json.loads(req.data.decode())
+        return _R()
+
+    monkeypatch.setattr(drv.urllib.request, "urlopen", fake)
+    drv.edit(source=str(src), instruction="x", model="grok-imagine-edit",
+             api_key="k", base_url="https://h", output_path=str(tmp_path / "o.png"))
+    body = sent["body"]
+    assert "image" in body, "upstream edits requires the singular `image` field"
+    assert "images" not in body or isinstance(body.get("images"), list)
+    assert body["prompt"] == "x"

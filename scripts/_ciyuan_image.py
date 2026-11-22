@@ -216,13 +216,20 @@ def _edit_once(
             source_bytes = p.read_bytes()
 
     start = time.time()
+    # 上游 edits 的契约是 `image`（单数，被编辑的那张）+ 可选 `images`（补充参考图），
+    # 不是 OpenAI 标准的 `images[]`。sub2api 的 multipart 分支正是产出这个形状
+    # （payload["image"] = images[0]，多于一张才带 images）；JSON 分支没有这层转换，
+    # 所以我们必须自己按同一形状发，否则上游回 400「改图要带 image」。
+    urls = [_as_image_url(s) for s in sources]
     payload: dict = {
         "model": model,
         "prompt": instruction.strip(),
-        "images": [{"image_url": _as_image_url(s)} for s in sources],
+        "image": {"url": urls[0], "type": "image_url"},
     }
+    if len(urls) > 1:
+        payload["images"] = [{"url": u, "type": "image_url"} for u in urls[1:]]
     if mask:
-        payload["mask"] = {"image_url": _as_image_url(mask)}
+        payload["mask"] = {"url": _as_image_url(mask), "type": "image_url"}
 
     req = urllib.request.Request(
         base_url.rstrip("/") + "/v1/images/edits",

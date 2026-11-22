@@ -14,9 +14,9 @@
       `lane_health.json` 的 `image_edit.*` 条目（含 `last_verified`）。
 - [x] 1.5 若两个 provider 都判 `still-blocked` 或 `cannot-judge`：停止本 change，记录
       证据并在 proposal 顶部加一段「探针未通过」实况说明。
-      **[x] 已触发（2026-11-21）**：两个 provider 均 `cannot-judge`——不是上游封锁，而是
-      承载 sub2api 的节点 cheap-7 于 15:53:01Z 整体失联（pod Pending、mesh offline）。
-      证据与解除条件见 proposal 顶部。**6.x 出片任务在探针跑出 `restored` 前不得开始。**
+      **2026-11-21 曾触发**（cheap-7 失联 → cannot-judge）；**2026-11-22 已解除**：
+      节点恢复后又连破三关（TTS 钥用错组 / 模型名写成混元 / 请求体用 images[]），
+      最终探针判 `restored`、E2E 判 `ok`。详情见 proposal 顶部。
 
 ## 2. 驱动与桥接
 
@@ -61,11 +61,12 @@
 
 ## 6. 上线验收
 
-- [ ] 6.1 出片（公开仓线）并在现网 `registry_list_generators` 看到 `edit_image` 条目
+- [x] 6.1 出片（公开仓线）并在现网 `registry_list_generators` 看到 `edit_image` 条目
       与两条 image_edit 车道状态。
-- [ ] 6.2 现网真调一次编辑，产物落盘、账本记 `usage_logs` 一行（不是 0 计费）。
-      **阻塞**：cheap-7 失联 → router 503；需节点恢复或 sub2api 迁节点后，
-      先跑 `scripts/probe_image_lane.py --edits` 得 `restored`，再跑 `scripts/e2e_image_edit.py`。
+- [x] 6.2 现网真调一次编辑，产物落盘、账本记 `usage_logs` 一行（不是 0 计费）。
+      2026-11-22 达成：`e2e_image_edit.py` 五项断言全过（生成→编辑→产物不同→父子血缘→
+      两条 usage 记录），`usage_logs` 真计费 $0.02/张（组19 acct57）。
+      注：本仓校验的是工具面与账本，**未**出片到生产镜像——出片走另一条线。
 - [x] 6.3 `docs/debt-ledger.md` 增补一行：编辑车道的承做方漂移风险与复验方式。
       （DEBT-EDIT-01，含复验命令与三种判据的处置方向。）
 

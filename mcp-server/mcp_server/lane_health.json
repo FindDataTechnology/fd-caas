@@ -1,6 +1,6 @@
 {
   "kind": "lane-health",
-  "updated": "2026-11-21",
+  "updated": "2026-11-22",
   "note": "机读车道健康台账（deliver-hosted-surface W3；spec ciyuan-lane-providers「车道缺陷记录与规避」+ generation-registry「方式可发现性」）。health ∈ active|degraded|down。发现面（models_voices / registry_list_generators）注入此表；down 车道的工具调用按 lane_down 分类拒绝（C1 错误分类层）。字段：reason_class ∈ upstream_blocked|unconfigured|upstream_degraded|none；last_verified=实调证据日期。销账必须附实调 E2E 证据（探针或真产物），不许只翻状态。",
   "lanes": {
     "voice.ciyuan": {
@@ -22,10 +22,10 @@
       "last_verified": "2026-10-27"
     },
     "image.ciyuan": {
-      "health": "degraded",
-      "reason_class": "group_not_permitted",
-      "reason": "**2026-11-21 复验降级（group_not_permitted）**：11-15 的 active 是有效实调销账，但当前同一把 key 打 `/v1/images/generations` 得 HTTP 403 `Image generation is not enabled for this group` —— 分组媒体权限被关掉。车道本身没坏，是授权面变了。恢复=sub2api 控制台打开该分组的图片生成权限；之前的调用被 sub2api 直接拒，不到上游、不计费。 ｜ 历史销账证据：**2026-11-21 复验降级（group_not_permitted）**：此前 11-15 的 active 是有效的实调销账，但当前同一把 key 打 `/v1/images/generations` 得 **HTTP 403 `Image generation is not enabled for this group`** ——分组媒体权限被关掉了（或换号后新组未开）。车道本身没坏，是**授权面**变了。恢复=sub2api 控制台给该分组打开图片生成权限；在此之前的调用会被 sub2api 直接拒，不会到达上游、也不会计费。 ｜ 历史销账证据（仍成立，供恢复后对照）：**2026-11-14 实调销账**（组 19 grok 车道钥匙走同一网关 /v1/images/generations）：真产物落盘 + 形状合规——台账行 386469（acct 57 `fed-wor",
-      "last_verified": "2026-11-21"
+      "health": "down",
+      "reason_class": "upstream_blocked",
+      "reason": "**2026-11-22 复核**：`vaas-media-grok`(id 182, 组19) 打 `/v1/images/generations` HTTP 200、真产物、`usage_logs` 计 $0.02/张（01:58Z 实记）；但**承做方漂移仍在**：请求 `grok-imagine-image`、响应 `model: hunyuan-image-alpha`、日志 `serving_model: hunyuan-image-alpha`。同时组 9 的 key（id 77/162）同端点 502 —— acct 40 仍封。另：`deploy/.env` 里的 `CIYUAN_API_KEY` 是 `vaas-tts`(id 76, 组3 core)，该组 `allow_image_generation=false` → 403「Image generation is not enabled for this group」。VAAS 图像必须用 **组19 的 `vaas-media-grok`**，不是那把 TTS 钥。",
+      "last_verified": "2026-11-22"
     },
     "image.volcengine": {
       "health": "down",
@@ -34,10 +34,10 @@
       "last_verified": "2026-10-06"
     },
     "image.grok": {
-      "health": "degraded",
-      "reason_class": "group_not_permitted",
-      "reason": "**2026-11-21 复验降级（group_not_permitted）**：11-15 的 active 是有效实调销账，但当前同一把 key 打 `/v1/images/generations` 得 HTTP 403 `Image generation is not enabled for this group` —— 分组媒体权限被关掉。车道本身没坏，是授权面变了。恢复=sub2api 控制台打开该分组的图片生成权限；之前的调用被 sub2api 直接拒，不到上游、不计费。 ｜ 历史销账证据：**2026-11-21 复验降级（group_not_permitted）**：此前 11-15 的 active 是有效的实调销账，但当前同一把 key 打 `/v1/images/generations` 得 **HTTP 403 `Image generation is not enabled for this group`** ——分组媒体权限被关掉了（或换号后新组未开）。车道本身没坏，是**授权面**变了。恢复=sub2api 控制台给该分组打开图片生成权限；在此之前的调用会被 sub2api 直接拒，不会到达上游、也不会计费。 ｜ 历史销账证据（仍成立，供恢复后对照）：**2026-11-15 实调销账**（`provider=grok` 独立一次，不经 image.ciyuan 借证）：经 `scripts/litellm-bridge.py image` 打组 19，真产",
-      "last_verified": "2026-11-21"
+      "health": "active",
+      "reason_class": "none",
+      "reason": "**2026-11-22 复核**：`vaas-media-grok`(id 182, 组19) 打 `/v1/images/generations` HTTP 200、真产物、`usage_logs` 计 $0.02/张（01:58Z 实记）；但**承做方漂移仍在**：请求 `grok-imagine-image`、响应 `model: hunyuan-image-alpha`、日志 `serving_model: hunyuan-image-alpha`。同时组 9 的 key（id 77/162）同端点 502 —— acct 40 仍封。另：`deploy/.env` 里的 `CIYUAN_API_KEY` 是 `vaas-tts`(id 76, 组3 core)，该组 `allow_image_generation=false` → 403「Image generation is not enabled for this group」。VAAS 图像必须用 **组19 的 `vaas-media-grok`**，不是那把 TTS 钥。",
+      "last_verified": "2026-11-22"
     },
     "video.ciyuan": {
       "health": "down",
@@ -64,18 +64,18 @@
       "last_verified": "2026-11-06"
     },
     "image_edit.ciyuan": {
-      "health": "degraded",
-      "reason_class": "group_not_permitted",
-      "reason": "**2026-11-21 复验：`cannot-judge / group_not_permitted`**。节点已恢复（cheap-7 Ready，sub2api 1/1），router 恢复应答（503→401），但打进图像端点得到 **HTTP 403 `{\"error\":{\"message\":\"Image generation is not enabled for this group\",\"type\":\"permission_error\"}}`** ——整把 key（含 grok 与 ciyuan 两档）都同型，`/v1/images/generations` 与 `/v1/images/edits` 也一样。这是 **sub2api 后台的分组媒体权限没开**，不是上游封锁、不是凭据失效、更不是节点故障。处置：sub2api 控制台 → 该 API key 所属分组 → 打开「允许图片生成」媒体权限后重跑 `probe_image_lane.py --edits`。在此之前本车道 MUST NOT 判 active。",
+      "health": "down",
+      "reason_class": "upstream_blocked",
+      "reason": "**2026-11-22：不可用——组 9 的唯一上游 acct 40 仍是封的**（`temp_unschedulable_reason` 记 OpenAI 403 站点级封禁，最后错误停在 2026-11-05）。同一份请求经组 9 的 key（`vaas-image-video` id 77 / `vaas-wanxing-imagevideo` id 162）打到 `/v1/images/generations` 得 502 `Upstream request failed`，与编辑无关——是账号问题（DEBT-LANE-9-01）。编辑车道本轮实测走的是 **组 19**。",
       "last_verified": "2026-11-21",
-      "stale_after_days": 2
+      "stale_after_days": 7
     },
     "image_edit.grok": {
-      "health": "degraded",
-      "reason_class": "group_not_permitted",
-      "reason": "**2026-11-21 复验：`cannot-judge / group_not_permitted`**。节点已恢复（cheap-7 Ready，sub2api 1/1），router 恢复应答（503→401），但打进图像端点得到 **HTTP 403 `{\"error\":{\"message\":\"Image generation is not enabled for this group\",\"type\":\"permission_error\"}}`** ——整把 key（含 grok 与 ciyuan 两档）都同型，`/v1/images/generations` 与 `/v1/images/edits` 也一样。这是 **sub2api 后台的分组媒体权限没开**，不是上游封锁、不是凭据失效、更不是节点故障。处置：sub2api 控制台 → 该 API key 所属分组 → 打开「允许图片生成」媒体权限后重跑 `probe_image_lane.py --edits`。在此之前本车道 MUST NOT 判 active。",
-      "last_verified": "2026-11-21",
-      "stale_after_days": 2
+      "health": "active",
+      "reason_class": "none",
+      "reason": "**2026-11-22 实调销账（`restored`）**：`probe_image_lane.py --edits` 经组 19 `fed-workbuddy-media`（acct 57，key `vaas-media-grok` id 182）打到 `/v1/images/edits`，产物 432,581 B PNG、`file_size_bytes` 与磁盘一致、**与源图字节不同**、延迟 9.9s。画面核实：指令「把背景改为纯蓝、保留灰方块」被逐项执行（灰方块保留、背景变蓝）。⚠️ 产物右下角带上游水印「AI生成 WORKBUDDY」——编辑产物不是纯净图，下游若要无字图需裁剪或换档。关键契约：**请求模型必须写 `grok-imagine-edit`**（acct 57 的 model_mapping 只认这个名）；写 `hunyuan-image-alpha-edit`（上游 400 提示的名字）会被 sub2api 判 `model_not_supported` → 503。请求体用上游形状：`image`（单数，被编辑那张）+ 可选 `images`（补充参考）+ 可选 `mask`，不是 OpenAI 的 `images[]`——写错了上游回 400「改图要带 image」。",
+      "last_verified": "2026-11-22",
+      "stale_after_days": 7
     }
   }
 }

@@ -1,30 +1,30 @@
 # Proposal
 
-> ## 探针未通过（2026-11-21）：本 change 停在任务 1.5
+> ## 探针通过（2026-11-22 实调销账）
 >
-> `probe_image_lane.py --edits` 与对照组 `--model grok-imagine-image`（generations）
-> **同时**返回 HTTP 503；`/v1/models`、站点根路径、甚至**无效 key** 也都是 503
-> （0.13s 返回，带 SafeLine 的 `sl-session` cookie）。
+> `probe_image_lane.py --edits` 判 **`restored`**：产物 432,581 B PNG、
+> `file_size_bytes` 与磁盘一致、与源图字节不同、延迟 9.9s；画面上「背景改蓝、灰方块保留」
+> 被逐项执行。整条 E2E（生成 → 编辑 → 血缘 → 计费）`scripts/e2e_image_edit.py` 判 **`ok`**，
+> 五项断言全过。
 >
-> 根因不是词元上游，是承载它的节点：**`cheap-7` (100.64.0.14) 自
-> 2026-11-21T15:53:01Z 起 kubelet 停止上报**（`tailscale status` 显示
-> `cheap7 … relay "cs"; offline`，ICMP/SSH 全丢）。sub2api 主 pod 由 Running 变
-> **Pending**：PVC `sub2api-data-3` 是 local-path，PV 的 `nodeAffinity` 钉死 cheap-7
-> ⇒ `0/7 nodes are available`。同挂该节点的 platform / falkordb / apisix /
-> zhesi-api 一并不可达。
+> **2026-11-21 那次 `cannot-judge` 的真因链**（记下来，因为每一环都像上游封锁）：
+> 1. 节点 `cheap-7` 整体失联 → router 503（不是上游问题）；
+> 2. 恢复后 403「Image generation is not enabled for this group」→ **VAAS `.env` 里放的是
+>    `vaas-tts`（组 3 core）的钥，该组没开图片权限**——图像必须用组 19 的 `vaas-media-grok`；
+> 3. 换钥后 503 `No eligible Grok media accounts` → 请求的模型名不对：
+>    上游 400 提示「用 `hunyuan-image-alpha-edit`」，但 **acct 57 的 model_mapping 只认
+>    `grok-imagine-edit`**，写混元名会被 sub2api 判 `model_not_supported`；
+> 4. 模型名改对后 400「改图要带 `image`」→ **上游 edits 契约是 `image`（单数）**，
+>    OpenAI 的 `images[]` 不认。
 >
-> 判据类别 = **`cannot-judge`**（基础设施故障），**不是** `still-blocked`。
-> 按 `DEBT-LANE-9-01-REVERIFY` 的口径，这类结论 MUST NOT 被读成「上游仍封着」。
+> 这四环任意一环停在错误结论上，都会把「配置问题」写成「上游不可用」。
 >
-> **已完成且不依赖上游的部分**（任务 2/3/4/5 的代码面）：驱动 `edit()`、
-> 源图上限、回显判据、bridge 分流、`edit_image` 工具与注册表、车道台账、
-> 零价拒启闸、8 条新测试、562 条测试全绿。**未做**：真产物验证（1.1–1.4）、
-> 出片上生产（6.x）。
+> **已知边界**（实测，写进车道台账与债务表）：
+> - 产物右下角带上游水印「AI生成 WORKBUDDY」；
+> - 指令说「keep everything else」，上游仍重绘了背景（红方块→蓝方块时白底变成了米色渐变）。
+>   编辑是**受约束的重绘**，不是像素级局部替换；mask 未实测。
 >
-> **解除条件**：cheap-7 恢复（或 sub2api 迁到别的节点）后重跑
-> `probe_image_lane.py --edits`，`restored` 才允许继续 6.x。
-
-## Why
+> ## Why
 
 词元网关早已开通 `POST /v1/images/edits`（sub2api 路由与 Grok 媒体端点都在役，最多 3 张源图），
 但 VAAS 从未接这条出口：`generate_image()` 只收 `prompt/size/n/slug`，`generators/image.py`
