@@ -66,7 +66,11 @@
 - [x] 6.2 现网真调一次编辑，产物落盘、账本记 `usage_logs` 一行（不是 0 计费）。
       2026-11-22 达成：`e2e_image_edit.py` 五项断言全过（生成→编辑→产物不同→父子血缘→
       两条 usage 记录），`usage_logs` 真计费 $0.02/张（组19 acct57）。
-      注：本仓校验的是工具面与账本，**未**出片到生产镜像——出片走另一条线。
+      **出片也已落地**：`d75f2c8` → origin/main → GHA `image` run `44978544405` success →
+      `hkccr`/`ccr` 双 registry 均见 `yizuo/vaas-mcp-server:sha-7e6323d`（同 digest `6695924d`）。
+      ⚠️ **但没有生产实例**：该镜像目前无任何 k8s Deployment / docker compose 栈 / facet
+      registry 条目引用它（VAAS 只在本地 stdio 跑）。"镜像可拉取" ≠ "已上产"，
+      部署与现网实证是一条尚未存在的线，见 docs/debt-ledger.md DEBT-VAAS-DEPLOY-01。
 - [x] 6.3 `docs/debt-ledger.md` 增补一行：编辑车道的承做方漂移风险与复验方式。
       （DEBT-EDIT-01，含复验命令与三种判据的处置方向。）
 
