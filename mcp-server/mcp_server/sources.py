@@ -182,7 +182,10 @@ def source_mcp(lane: dict, domain: str, query: str, limit: int) -> dict:
     bearer = _resolve_bearer(lane["service"])
     timeout = float(os.getenv("VAAS_SOURCE_TIMEOUT", "30"))
     tool = lane["search_tool"]
-    arguments = {"query": query, "limit": limit}
+    # Each source face names its search arg differently (fd-text-core: query,
+    # fd-legal-search-mcp: title_query). The lane declares it; default "query".
+    qparam = lane.get("query_param") or "query"
+    arguments = {qparam: query, "limit": limit}
 
     try:
         data = _fetch(url, tool, arguments, timeout, bearer)

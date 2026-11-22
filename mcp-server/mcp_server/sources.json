@@ -20,6 +20,7 @@
   "legal": {
     "service": "fd-legal-search-mcp",
     "search_tool": "law_search",
+    "query_param": "title_query",
     "read_tool": "law_read",
     "driver": "source_mcp"
   },

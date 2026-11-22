@@ -63,6 +63,32 @@ def test_search_keeps_existing_provenance(monkeypatch):
     assert hit["as_of"] == "2026-11-01"
 
 
+def test_lane_uses_declared_query_param(monkeypatch):
+    """legal's law_search takes `title_query`, not `query`; the lane declares it."""
+    captured = {}
+
+    def fake(url, tool, args, timeout, bearer=None):
+        captured.update(args)
+        return {"results": []}
+
+    monkeypatch.setattr(S, "_fetch", fake)
+    S.source_search("legal", "合同")
+    assert "title_query" in captured and captured["title_query"] == "合同"
+    assert "query" not in captured
+
+
+def test_text_core_lane_uses_query(monkeypatch):
+    captured = {}
+
+    def fake(url, tool, args, timeout, bearer=None):
+        captured.update(args)
+        return {"hits": []}
+
+    monkeypatch.setattr(S, "_fetch", fake)
+    S.source_search("papers", "gnn")
+    assert captured.get("query") == "gnn"
+
+
 def test_empty_result_carries_reason(monkeypatch):
     monkeypatch.setattr(S, "_fetch", lambda *a, **k: {"hits": []})
     out = S.source_search("papers", "nothing")
