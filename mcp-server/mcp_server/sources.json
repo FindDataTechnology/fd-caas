@@ -7,13 +7,13 @@
   },
   "gov": {
     "service": "fd-text-core",
-    "search_tool": "gov_federated",
+    "search_tool": "gov_search",
     "read_tool": "gov_read",
     "driver": "source_mcp"
   },
   "news": {
     "service": "fd-text-core",
-    "search_tool": "news_federated",
+    "search_tool": "news_search",
     "read_tool": "news_read",
     "driver": "source_mcp"
   },
