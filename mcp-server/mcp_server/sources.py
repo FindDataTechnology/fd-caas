@@ -204,6 +204,7 @@ def source_mcp(lane: dict, domain: str, query: str, limit: int) -> dict:
     if isinstance(data, dict):
         raw_hits = data.get("hits") or data.get("results") or []
     hits = [_normalize_hit(h, lane["service"]) for h in raw_hits if isinstance(h, dict)]
+    hits = _dedupe_by_document(hits)
 
     # Surface upstream degradation as a reason even when some hits came back.
     degraded = data.get("degraded") if isinstance(data, dict) else None
@@ -214,6 +215,27 @@ def source_mcp(lane: dict, domain: str, query: str, limit: int) -> dict:
         out["detail"] = "no hits from source"
     elif degraded:
         out["degraded"] = degraded
+    return out
+
+
+def _dedupe_by_document(hits: list) -> list:
+    """Fold chunk-level hits to one per document (same source+stable_id).
+
+    A long policy document is chunked, so a query matches several of its chunks
+    and the raw hits repeat the same document N times. Upstream orders by
+    relevance, so keep the first (highest) occurrence and record how many
+    chunks it folded (`_chunks_merged`); callers get one entry per document.
+    """
+    seen: dict = {}
+    out: list = []
+    for h in hits:
+        key = (h.get("source"), h.get("stable_id"))
+        if key in seen:
+            seen[key]["_chunks_merged"] = seen[key].get("_chunks_merged", 1) + 1
+            continue
+        h = dict(h)
+        seen[key] = h
+        out.append(h)
     return out
 
 

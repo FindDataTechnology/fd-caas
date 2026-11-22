@@ -131,3 +131,20 @@ def test_tool_wrapper_records_usage(monkeypatch, isolated_db):
     assert rows[0]["owner"] == "tenant-a"
     assert rows[0]["tool"] == "source_search"
     assert rows[0]["unit_type"] == "source"
+
+
+def test_dedupe_folds_same_document_chunks(monkeypatch):
+    """Chunk-level hits of one document fold to one entry (same source+stable_id)."""
+    def fake(url, tool, args, timeout, bearer=None):
+        return {"hits": [
+            {"source": "govcn", "stable_id": "u1", "title": "条例", "provenance": {"stable_id": "u1", "source": "govcn", "as_of": "x"}},
+            {"source": "govcn", "stable_id": "u1", "title": "条例", "provenance": {"stable_id": "u1", "source": "govcn", "as_of": "x"}},
+            {"source": "govcn", "stable_id": "u1", "title": "条例", "provenance": {"stable_id": "u1", "source": "govcn", "as_of": "x"}},
+            {"source": "govcn", "stable_id": "u2", "title": "办法", "provenance": {"stable_id": "u2", "source": "govcn", "as_of": "x"}},
+        ]}
+
+    monkeypatch.setattr(S, "_fetch", fake)
+    out = S.source_search("gov", "条例")
+    assert out["count"] == 2
+    assert [h["stable_id"] for h in out["hits"]] == ["u1", "u2"]
+    assert out["hits"][0]["_chunks_merged"] == 3
