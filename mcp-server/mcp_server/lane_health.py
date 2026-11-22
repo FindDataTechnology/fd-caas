@@ -70,13 +70,20 @@ def lane_health(kind: str, provider: str) -> dict:
     lanes = (load_lane_health() or {}).get("lanes") or {}
     entry = lanes.get(f"{kind}.{provider}")
     if entry:
-        return {
+        view = {
             "health": entry.get("health", "degraded"),
             "reason_class": entry.get("reason_class"),
             "reason": entry.get("reason"),
             "last_verified": entry.get("last_verified"),
             **_staleness(entry),
         }
+        # 能力级事实（如视频首帧是否被验证支持）必须**结构化透出**，不能只写进
+        # reason 文本——那样消费方只能 grep 人话。台账里有的能力子表原样带上。
+        ff = entry.get("first_frame")
+        if isinstance(ff, dict):
+            view["first_frame"] = ff
+            view["first_frame_supported"] = bool(ff.get("supported"))
+        return view
     return {"health": "degraded", "reason_class": None, "reason": "lane not in health ledger",
             "last_verified": None, "age_days": None, "stale": None}
 
