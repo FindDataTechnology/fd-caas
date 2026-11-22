@@ -44,7 +44,7 @@ COPY .agents/skills/fd-vaas-video-creator/types/ /app/.agents/skills/fd-vaas-vid
 # Python deps: server deps + playwright (python API) + mutagen (mp3 duration).
 # The render plane resolves chromium itself: VAAS_CHROMIUM_EXECUTABLE pins it,
 # else system /usr/bin/chromium wins (offline-friendly, no download needed).
-RUN pip install --no-cache-dir "fastmcp>=3,<4" "pydantic>=2" aiosqlite python-dotenv \
+RUN pip install --no-cache-dir "fastmcp>=4.2.4,<5" "pydantic>=2" aiosqlite python-dotenv \
         markdown "mutagen>=1.47" \
         "playwright>=1.49"
 
