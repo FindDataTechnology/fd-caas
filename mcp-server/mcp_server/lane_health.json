@@ -54,8 +54,21 @@
     "video.grok": {
       "health": "active",
       "reason_class": "none",
-      "reason": "**2026-11-15 实调销账**（`/v1/videos` 全链，经 `scripts/_grok_video.py` 真实驱动）：任务 `vid_84655a2f5a1f13ee` → 真 MP4 落盘 3,140,407 B / h264 1280x720 + aac / 3.04s（ffprobe 独立核过）；上游自报承做 `kling-video-v3`、`seconds:3`、`resolution:720P`。两条披露同时真实触发：请求 1s 被夹紧到上游下限 3s、请求 480p 实得 720P。端到端凭证=组 19 专用钥（api_keys id 182 / user 128，`last_used_at` 证明密文鉴权路径已通）。**已知上游缺陷（不属本车道）：视频完成不落 `usage_logs`**——sub2api `grok_media.go` 计费谓词等 `status==\"done\"`+`video.url`+数字时长，上游实际回 `status:\"completed\"`+扁平 `url`+字符串 `seconds`，三处形状假设同时落空，故本次调用同样无用量行（2h 内视频类 0 行，实测复现）。**该缺陷已在代码里修好、尚未上线**：sub2api commit `8930b8adb`（分支 `fix/grok-video-billing-compat-shapes`，open spec change `grok-video-billing-compat-shapes`），单测 16/16 绿、`go build`/`go vet` 通过；上线后同样的调用应出现 `grok-video:<task>` 用量行——那时再回来把本条改成「车道可用且计费正确」。在此之前本条目只证车道可用",
-      "last_verified": "2026-11-15"
+      "reason": "**2026-11-22 图生视频实调销账（restored）**：`probe_video_lane.py` 跑双盲对照——同一提示词，带 data-URI 首帧 / 不带各生成一次，抽第一帧比平均 RGB。源图纯蓝 (0,0,255)，带首帧产物首帧 (7,8,242)（距源图 16.79），无首帧产物首帧 (208,182,180)（距源图 286.38），两者相距 272.99。差一个数量级 ⇒ **首帧确实被上游采用**，不是边缘判断。形态：`data_uri` 可用（未验 URL 形态与上传通道）。⚠️ 仍存的边界：`last_frame` 在 /v1/videos 形状下被驱动忽略（_grok_video 的既有实现）；视频时长下限 3s、上限 15s；终态词 completed/succeeded/done 都认。 ｜ 历史：**2026-11-15 实调销账**（`/v1/videos` 全链，经 `scripts/_grok_video.py` 真实驱动）：任务 `vid_84655a2f5a1f13ee` → 真 MP4 落盘 3,140,407 B / h264 1280x720 + aac / 3.04s（ffprobe 独立核过）；上游自报承做 `kling-video-v3`、`seconds:3`、`resolution:720P`。两条披露同时真实触发：请求 1s 被夹紧到上游下限 3s、请求 480p 实得 720P",
+      "last_verified": "2026-11-22",
+      "first_frame": {
+        "supported": true,
+        "forms_verified": [
+          "data_uri"
+        ],
+        "forms_unverified": [
+          "http_url",
+          "upload"
+        ],
+        "last_frame_supported": false,
+        "verified_by": "scripts/probe_video_lane.py",
+        "last_verified": "2026-11-22"
+      }
     },
     "render.local": {
       "health": "active",

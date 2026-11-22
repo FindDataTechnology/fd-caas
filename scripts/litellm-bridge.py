@@ -287,7 +287,45 @@ def cmd_image(args: argparse.Namespace) -> int:
 # ---------------------------------------------------------------------------
 
 
+
+def _expand_frame_arg(value: str | None) -> str | None:
+    """`@file:<path>` → data URI。把「读大文件」放在桥接里做，而不是塞进 argv。
+
+    为什么需要这个约定（2026-11-22 实测）：1MB 的 PNG base64 后 1.4MB，
+    作为 subprocess 参数传递既慢又可能撞 ARG_MAX，表现为整个调用被判 timeout。
+    驱动侧只传路径，桥接在这里读一次。
+    """
+    if not value:
+        return None
+    if not value.startswith("@file:"):
+        return value
+    import base64
+    from pathlib import Path
+
+    path = Path(value[len("@file:"):]).expanduser()
+    if not path.is_file():
+        raise SystemExit(f"Error: first/last frame file not found: {path}")
+    raw = path.read_bytes()
+    if not raw:
+        raise SystemExit(f"Error: frame file is empty: {path}")
+    if raw.startswith(b"\xff\xd8\xff"):
+        mime = "image/jpeg"
+    elif raw.startswith(b"\x89PNG\r\n\x1a\n"):
+        mime = "image/png"
+    elif raw[:6] in (b"GIF87a", b"GIF89a"):
+        mime = "image/gif"
+    elif raw.startswith(b"BM"):
+        mime = "image/bmp"
+    else:
+        raise SystemExit(f"Error: frame file is not a recognised image: {path}")
+    return f"data:{mime};base64," + base64.b64encode(raw).decode("ascii")
+
+
 def cmd_video(args: argparse.Namespace) -> int:
+    if args.first_frame:
+        args.first_frame = _expand_frame_arg(args.first_frame)
+    if args.last_frame:
+        args.last_frame = _expand_frame_arg(args.last_frame)
     if not args.prompt and not args.status_task_id:
         print("Error: --prompt (or --status) is required", file=sys.stderr)
         return 2
@@ -573,7 +611,10 @@ def build_parser() -> argparse.ArgumentParser:
     v.add_argument("--duration", type=int, help="Video duration in seconds")
     v.add_argument("--ratio", help="Aspect ratio (16:9, 9:16, 1:1, etc.)")
     v.add_argument("--resolution", help="Resolution (480p, 720p, 1080p, 4k)")
-    v.add_argument("--first-frame", dest="first_frame", help="First frame image URL (ciyuan lane)")
+    v.add_argument("--first-frame", dest="first_frame",
+                   help="First frame: http(s) URL, local path, or data URI. Local paths are "
+                        "inlined as data URIs — the lane honours them (verified 2026-11-22, "
+                        "see lane_health video.grok.first_frame).")
     v.add_argument("--last-frame", dest="last_frame", help="Last frame image URL (ciyuan lane)")
     v.add_argument("--output", help="Output video file path")
     v.add_argument("--async", dest="async_mode", action="store_true", help="Submit only, don't wait")

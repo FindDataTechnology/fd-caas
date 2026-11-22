@@ -58,6 +58,81 @@ def _slug_for(prompt: Optional[str], slug: Optional[str], fallback: str) -> str:
     return generate_slug(prefix or fallback)
 
 
+
+# ── 首帧形态解析（change expose-video-generation-lanes 2.1/2.3）───────────────
+#
+# 上游要的是能内联/能取的图。调用方手里的东西有三种：URL、本地路径、VAAS 资产 id。
+# 这里统一成上游能吃的形态，并且**在提交前校验**——绝不提交一个没有首帧的付费任务。
+#
+# 形态选择：本地图转 data URI。2026-11-22 探针实测该形态可用（首帧产物首帧 RGB
+# (7,8,242) vs 源图 (0,0,255)，距 16.79；无首帧时距 286.38）。
+
+_IMAGE_MAGIC = (
+    (b"\xff\xd8\xff", "jpeg"),
+    (b"\x89PNG\r\n\x1a\n", "png"),
+    (b"GIF87a", "gif"),
+    (b"GIF89a", "gif"),
+    (b"BM", "bmp"),
+)
+
+
+def _looks_like_asset_id(value: str) -> bool:
+    s = (value or "").strip()
+    return len(s) == 36 and s.count("-") == 4 and "/" not in s and "." not in s
+
+
+def resolve_first_frame(value: Optional[str], owner: Optional[str] = None) -> Optional[str]:
+    """URL / 本地路径 / 资产 id → 上游可接受的字符串。
+
+    - URL 与 data URI 原样返回；
+    - 资产 id 先查账本取 file_path；
+    - 本地路径读字节、按魔数校验、转 data URI。
+
+    读不到 / 认不出 / 资产无文件 **一律抛 ValueError**，且发生在提交之前——
+    这条纪律是「别为一个没有首帧的任务付钱」（spec 里写成 MUST NOT）。
+    """
+    if not value:
+        return None
+    v = value.strip()
+    if v.startswith(("http://", "https://", "data:")):
+        return v
+
+    path: Optional[Path] = None
+    if _looks_like_asset_id(v):
+        from ..db import get_asset
+        asset = get_asset(v, owner=owner)
+        rel = (asset or {}).get("file_path") or ""
+        if not rel:
+            raise ValueError(
+                f"invalid_input: first_frame asset {v} not found in the ledger "
+                f"(or has no file) — cannot use it as a first frame"
+            )
+        path = Path(VAAS_ROOT) / "downloads" / rel
+    else:
+        cand = Path(v).expanduser()
+        path = cand if cand.is_absolute() else (Path(VAAS_ROOT) / "downloads" / cand)
+        if not path.is_file():
+            cand2 = Path(v).expanduser()
+            path = cand2 if cand2.is_file() else path
+
+    if not path or not path.is_file():
+        raise ValueError(f"invalid_input: first_frame file not found: {value}")
+
+    raw = path.read_bytes()
+    if not raw:
+        raise ValueError(f"invalid_input: first_frame file is empty: {path}")
+    fmt = next((f for sig, f in _IMAGE_MAGIC if raw.startswith(sig)), None)
+    if fmt is None:
+        raise ValueError(
+            "invalid_input: first_frame is not a recognised image "
+            f"(first bytes: {raw[:12].hex()}) — refusing to submit"
+        )
+    # **不**在这里内联成 data URI：1MB 的图 base64 后 1.4MB，作为 argv 传给
+    # subprocess 既撞参数上限、又让桥接启动极慢（2026-11-22 实测被判 timeout）。
+    # 传路径，让桥接自己读文件——同机同 volume，不需要跨进程搬运字节。
+    return f"@file:{path}"
+
+
 def _build_cmd(prompt: Optional[str], output_path: Path, duration, ratio,
                resolution, first_frame, last_frame, wait, timeout) -> list[str]:
     cmd = ["python", str(LITELLM_BRIDGE), "video"]
@@ -105,6 +180,10 @@ def generate(
         "slug": slug,
     })
     owner = ctx["owner"]
+    # 首帧形态解析必须在提交前 —— 提交之后失败等于白付一次任务费。
+    # 抛 ValueError 即拒绝；这里不吞异常。
+    first_frame = resolve_first_frame(first_frame, owner=owner)
+    last_frame = resolve_first_frame(last_frame, owner=owner)
     slug = _slug_for(prompt, slug, "video")
 
     output_dir = ensure_directory_rel("videos", slug)
@@ -183,6 +262,10 @@ def submit(
         "slug": slug,
     })
     owner = ctx["owner"]
+    # 首帧形态解析必须在提交前 —— 提交之后失败等于白付一次任务费。
+    # 抛 ValueError 即拒绝；这里不吞异常。
+    first_frame = resolve_first_frame(first_frame, owner=owner)
+    last_frame = resolve_first_frame(last_frame, owner=owner)
     slug = _slug_for(prompt, slug, "video")
     output_dir = ensure_directory_rel("videos", slug)
     output_path = output_dir / f"{slug}.mp4"
