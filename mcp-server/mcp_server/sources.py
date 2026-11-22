@@ -41,6 +41,17 @@ def _resolve_endpoint(service: str) -> str:
     return f"{_base_url()}/{service}/mcp"
 
 
+def _resolve_bearer(service: str) -> Optional[str]:
+    """Per-service line token, if configured.
+
+    Source faces gate on a line bearer (MCP_BEARER_TOKEN). The public gateway
+    also gates on tenant identity, which a server-to-server lane call does not
+    have — so lanes normally talk to the INTERNAL faces with their line token.
+    """
+    tok = os.getenv("VAAS_SOURCE_" + service.upper().replace("-", "_") + "_BEARER")
+    return tok.strip() if tok and tok.strip() else None
+
+
 def load_sources() -> dict:
     with open(SOURCES_PATH, encoding="utf-8") as f:
         return json.load(f)
@@ -119,20 +130,42 @@ async def _call_mcp_tool(url: str, tool: str, arguments: dict, timeout: float) -
     return getattr(result, "data", None) or {}
 
 
-def _fetch(url: str, tool: str, arguments: dict, timeout: float) -> dict:
+async def _call_mcp_tool(url: str, tool: str, arguments: dict, timeout: float,
+                         bearer: Optional[str] = None) -> dict:
+    """Call one tool on a remote streamable-HTTP MCP face; return its structured data.
+
+    fastmcp runs sync tools inside a worker thread, so there is no running
+    event loop on this path — asyncio.run is safe here (verified: the tools are
+    registered as sync functions).
+    """
+    from fastmcp import Client
+    from fastmcp.client.transports import StreamableHttpTransport
+
+    headers = {"Authorization": f"Bearer {bearer}"} if bearer else None
+    transport = StreamableHttpTransport(url, headers=headers)
+    async with Client(transport) as client:
+        result = await client.call_tool(tool, arguments, timeout=timeout)
+    if getattr(result, "is_error", False) or getattr(result, "isError", False):
+        raise RuntimeError(f"upstream tool {tool} returned an error")
+    return getattr(result, "data", None) or {}
+
+
+def _fetch(url: str, tool: str, arguments: dict, timeout: float,
+           bearer: Optional[str] = None) -> dict:
     """Sync boundary over the async MCP client (patchable in tests)."""
-    return asyncio.run(_call_mcp_tool(url, tool, arguments, timeout))
+    return asyncio.run(_call_mcp_tool(url, tool, arguments, timeout, bearer))
 
 
 def source_mcp(lane: dict, domain: str, query: str, limit: int) -> dict:
     """Adapter driver: one source_search, normalized + reason-bearing on empty."""
     url = _resolve_endpoint(lane["service"])
+    bearer = _resolve_bearer(lane["service"])
     timeout = float(os.getenv("VAAS_SOURCE_TIMEOUT", "30"))
     tool = lane["search_tool"]
     arguments = {"query": query, "limit": limit}
 
     try:
-        data = _fetch(url, tool, arguments, timeout)
+        data = _fetch(url, tool, arguments, timeout, bearer)
     except Exception as exc:  # noqa: BLE001 — upstream failure must be visible, not empty
         return {"domain": domain, "service": lane["service"], "hits": [],
                 "reason": "unreachable", "detail": f"{type(exc).__name__}: {exc}"}

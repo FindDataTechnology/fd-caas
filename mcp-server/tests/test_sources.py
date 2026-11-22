@@ -37,7 +37,7 @@ def test_list_domains_has_first_batch():
 
 def test_search_normalizes_provenance(monkeypatch):
     """Federated hit without provenance gets a stable_id + as_of."""
-    def fake(url, tool, args, timeout):
+    def fake(url, tool, args, timeout, bearer=None):
         return {"hits": [{"source": "openalex", "title": "T", "doi": "10.1/x"}]}
 
     monkeypatch.setattr(S, "_fetch", fake)
@@ -51,7 +51,7 @@ def test_search_normalizes_provenance(monkeypatch):
 
 def test_search_keeps_existing_provenance(monkeypatch):
     """Indexed hit already carrying a provenance dict keeps its triple."""
-    def fake(url, tool, args, timeout):
+    def fake(url, tool, args, timeout, bearer=None):
         return {"results": [{"provenance": {"source": "law_db.laws",
                                             "stable_id": "law-7",
                                             "as_of": "2026-11-01"}}]}
