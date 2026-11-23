@@ -3,50 +3,121 @@
   "server": "vaas-wanxing",
   "entry_path": "/vaas-wanxing",
   "product_line": "constellation",
-  "hosting": ["shared-instance"],
+  "hosting": [
+    "shared-instance"
+  ],
   "visibility": "public",
-  "description": "萬星 VaaS 生成面（内容创作与分发引擎）：生成（图文/视频/语音）、渲染（video/still/document）、模板、产物资产、生成器注册表共 17 工具。publish_* 六件属发布面，按 ADR-0004「发布面从不多租户托管」仅在 stdio 暴露、hosting 形态下排除。",
+  "description": "萬星 VaaS 生成面（托管 hosted 形态，24 工具）：生成(图文/视频/语音/改图)、渲染(video/still/document)、模板、产物资产、生成器注册表、内容源检索(source_*)、引用存证与草稿门(citation_*)。publish_* 六件属发布面，ADR-0004 从不多租户托管，hosted 形态运行时不注册。",
   "naming_convention": {
     "order": "verb_noun",
     "applies_to": "new_tools",
-    "note": "generate_*/render_*/templates_*/assets_*/registry_* 均 verb_noun；publish_* 同。"
+    "note": "generate_*/render_*/templates_*/assets_*/registry_*/source_*/citation_* 均 verb_noun 或 noun_verb；既有面保持不动。"
   },
   "tool_groups": [
     {
       "group": "generate",
       "level": "commercial",
-      "tools": ["generate_voice", "generate_image", "generate_video_submit", "video_job_status", "models_voices", "voiceover_assemble", "reference_clips_check"]
+      "tools": [
+        "generate_voice",
+        "generate_image",
+        "edit_image",
+        "generate_video_submit",
+        "video_job_status",
+        "models_voices",
+        "voiceover_assemble",
+        "reference_clips_check"
+      ]
     },
     {
       "group": "render",
       "level": "commercial",
-      "tools": ["render_video", "render_still", "render_document"]
+      "tools": [
+        "render_video",
+        "render_still",
+        "render_document"
+      ]
     },
     {
       "group": "templates",
       "level": "commercial",
-      "tools": ["templates_list", "templates_get"]
+      "tools": [
+        "templates_list",
+        "templates_get"
+      ]
     },
     {
       "group": "assets",
       "level": "commercial",
-      "tools": ["assets_list", "assets_get", "assets_stats"]
+      "tools": [
+        "assets_list",
+        "assets_get",
+        "assets_stats"
+      ]
     },
     {
       "group": "registry",
       "level": "commercial",
-      "tools": ["registry_list_generators", "registry_describe_generator"]
+      "tools": [
+        "registry_list_generators",
+        "registry_describe_generator"
+      ]
     },
     {
-      "group": "publish",
-      "level": "internal",
-      "tools": ["publish_video", "publish_article", "publish_validate_ready", "publish_get_config", "publish_simulate", "publish_record"],
-      "notes": "发布面：ADR-0004 规定从不多租户托管，stdio-only；hosting 形态下由 HOSTED_EXCLUDED 运行时排除，故不进 commercial 集。"
+      "group": "source",
+      "level": "commercial",
+      "tools": [
+        "source_search",
+        "source_domains"
+      ],
+      "notes": "内容源检索（strengthen-caas-serious-text 加；hosted、确定性、计量）。"
+    },
+    {
+      "group": "citation",
+      "level": "commercial",
+      "tools": [
+        "citation_list",
+        "citation_gate",
+        "citation_verify"
+      ],
+      "notes": "引用读/门/验（engine=fd-shilun，HTTP 调）。"
+    },
+    {
+      "group": "citation-write",
+      "level": "commercial",
+      "tools": [
+        "citation_record"
+      ],
+      "notes": "引用写/读/门/验全套都在 hosted 面（运行时注册）；citation_record 写入引用存证但属对外可用的 hosted 工具。"
     }
   ],
   "rules": {
-    "commercial_tools": ["generate_voice", "generate_image", "generate_video_submit", "video_job_status", "models_voices", "voiceover_assemble", "reference_clips_check", "render_video", "render_still", "render_document", "templates_list", "templates_get", "assets_list", "assets_get", "assets_stats", "registry_list_generators", "registry_describe_generator"],
-    "internal_tools": ["publish_video", "publish_article", "publish_validate_ready", "publish_get_config", "publish_simulate", "publish_record"],
-    "note": "hosting 形态只注册 17 个 commercial 工具；publish_* 六件在 hosted 模式被 HOSTED_EXCLUDED 排除（见 mcp_server/main.py）。selfcheck 在 hosted 形态下断言 commercial 集=运行时工具面。"
+    "commercial_tools": [
+      "assets_get",
+      "assets_list",
+      "assets_stats",
+      "citation_gate",
+      "citation_list",
+      "citation_record",
+      "citation_verify",
+      "edit_image",
+      "generate_image",
+      "generate_video_submit",
+      "generate_voice",
+      "models_voices",
+      "reference_clips_check",
+      "registry_describe_generator",
+      "registry_list_generators",
+      "render_document",
+      "render_still",
+      "render_video",
+      "source_domains",
+      "source_search",
+      "templates_get",
+      "templates_list",
+      "video_job_status",
+      "voiceover_assemble"
+    ],
+    "internal_tools": [],
+    "note": "以现网 hosted 运行时 24 工具为准；hosted 面==commercial 面（publish_* 六件运行时不注册，故不在内）。citation_* 四件全 commercial。"
   }
 }
