@@ -1,5 +1,8 @@
 ## 1. 代码：图像产物形态
 
+> **2026-11-25 复核留任**：32/42。delta 差 1 条（grok 视频车道 /v1/videos 驱动）未合主 spec——该驱动代码在 mcp_server 内搜不到实现，故不能 sync 归档。剩 2.x–8.7 全为外部凭证阻塞（缺图像/视频 key、vault 无写权限）。
+
+
 - [x] 1.1 `scripts/_ciyuan_image.py`：`data[]` 解析从「只认 `b64_json`」改为
       「`b64_json` 优先、缺失时取 `url`」；url 分支下载到 `output_paths[i]`
 - [x] 1.2 url 下载的硬约束：仅 http/https、连接/读取超时、体积上限（默认与
