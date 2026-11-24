@@ -167,3 +167,15 @@
       改前实测 image/video 两个 kind 都抛、改后逐键核对 env（并断言不混进 `CIYUAN_API_KEY`/
       `VIDEO_MODEL`——混进就会走被封的组 9 车道）；新增 4 条用例，`scripts/ci-local.sh`
       541 passed / 15 skipped 全绿。
+
+---
+
+归档豁免：2026-11-25 剩 2.1/2.2/2.3/3.1/3.2/3.3/5.3/6.5/7.5/8.7 共 10 项**全部是外部阻塞，无一是代码欠账**：
+- 2.1/2.2/6.5/8.7 卡在组 19 的 key 归属决定 + vault 写权限（本机无 `bao`/`vault` CLI、无 `OPENBAO_TOKEN`）；
+- 2.3/3.1/3.2/3.3/5.3 是「拿到凭据 → 实调 → 改 lane_health → 出片滚到 render-node-a」这条链，
+  依赖上一条，且 render-node-a 现为 Permission denied；
+- 7.5 需先有一次真实复验观察判定形态才能定分档。
+
+代码侧全部完成且验证：grok `/v1/videos` 四函数驱动（`scripts/_grok_video.py`）、时长 [3,15] 夹紧、
+ftyp 魔数校验、两阶段防重复计费；`tests/test_grok_video_lane.py` 13/13 通过（2026-11-25 复跑）。
+delta 已合入主 spec `ciyuan-lane-providers`（+1 新增 grok 视频车道 / ~3 修改）。外部凭据到位后按 2→3→5 顺序补验即可，不阻塞代码交付。
